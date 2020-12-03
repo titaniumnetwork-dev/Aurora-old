@@ -1,15 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"AuroraProxy/proxy"
 	"net/http"
 )
 
 func main() {
-	http.HandleFunc("/", server)
+	http.HandleFunc("/", proxy.Server)
 	http.ListenAndServe(":8080", nil)
-}
-
-func server(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, World!")
 }
