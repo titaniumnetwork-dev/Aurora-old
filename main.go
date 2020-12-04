@@ -3,14 +3,19 @@ package main
 import (
 	"AuroraProxy/proxy"
 	"fmt"
+	"log"
 	"net/http"
 )
 
 const port = ":8080"
 
 func main() {
-	http.HandleFunc("/", proxy.Server)
-	http.ListenAndServe(port, nil)
+	fmt.Printf("Starting server on port %v\n", port)
 
-	fmt.Printf("Listening on port %v", port)
+	http.HandleFunc("/", proxy.Server)
+	err := http.ListenAndServe(port, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 }
