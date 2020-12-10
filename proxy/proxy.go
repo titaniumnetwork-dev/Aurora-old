@@ -8,7 +8,12 @@ import (
 
 // Server used for proxy
 func Server(w http.ResponseWriter, r *http.Request) {
-	client := &http.Client{}
+	tr := &http.Transport{
+		MaxIdleConns:    10,
+		IdleConnTimeout: 10 * time.Second,
+	}
+
+	client := &http.Client{Transport: tr}
 
 	req, err := http.NewRequest("GET", "", nil)
 	resp, err := client.Do(req)
