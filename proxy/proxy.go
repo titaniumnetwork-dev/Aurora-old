@@ -1,9 +1,12 @@
 package proxy
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 )
 
 // Server used for proxy
@@ -15,14 +18,30 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	client := &http.Client{Transport: tr}
 
-	req, err := http.NewRequest("GET", "", nil)
+	url := strings.Join(strings.Split(r.URL.String(), "?")[1:], "")
+	if url == "" {
+		fmt.Fprintf(w, "Welcome to %s proxy!", "Aurora")
+		return
+	}
+
+	if strings.HasPrefix(url, "//") {
+		url = "http:" + url
+	} else if !strings.HasPrefix(url, "http") {
+		url = "https://" + url
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
 
+	for key, val := range resp.Header {
+		w.Header().Set(key, strings.Join(val, ", "))
+	}
 	w.WriteHeader(resp.StatusCode)
 
 	io.Copy(w, resp.Body)
 }
+
