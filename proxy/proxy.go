@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -19,16 +18,6 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{Transport: tr}
 
 	url := strings.Join(strings.Split(r.URL.String(), "?")[1:], "")
-	if url == "" {
-		fmt.Fprintf(w, "Welcome to %s proxy!", "Aurora")
-		return
-	}
-
-	if strings.HasPrefix(url, "//") {
-		url = "http:" + url
-	} else if !strings.HasPrefix(url, "http") {
-		url = "https://" + url
-	}
 
 	req, err := http.NewRequest("GET", url, nil)
 	resp, err := client.Do(req)
@@ -44,4 +33,3 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	io.Copy(w, resp.Body)
 }
-
