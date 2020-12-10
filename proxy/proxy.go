@@ -1,11 +1,23 @@
 package proxy
 
 import (
-	"fmt"
+	"io"
+	"log"
 	"net/http"
 )
 
-// Server to be used for the proxy.
+// Server used for proxy
 func Server(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, World!")
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", "", nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	w.WriteHeader(resp.StatusCode)
+
+	io.Copy(w, resp.Body)
 }
