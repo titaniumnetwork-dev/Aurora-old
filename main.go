@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"AuroraProxy/proxy"
 	"github.com/titaniumnetwork-dev/AuroraProxy/proxy"
 	"log"
 	"net/http"

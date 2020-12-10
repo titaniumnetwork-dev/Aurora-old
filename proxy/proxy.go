@@ -1,17 +1,17 @@
 package proxy
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 	"time"
-	"fmt"
 )
 
 // Server used for proxy
 func Server(w http.ResponseWriter, r *http.Request) {
-        tr := &http.Transport{
+	tr := &http.Transport{
 		MaxIdleConns:    10,
 		IdleConnTimeout: 10 * time.Second,
 	}
@@ -21,14 +21,14 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	url := strings.Join(strings.Split(r.URL.String(), "?")[1:], "")
 	if url == "" {
 		fmt.Fprintf(w, "Welcome to %s proxy!", "Aurora")
-                return
+		return
 	}
 
 	if strings.HasPrefix(url, "//") {
-                url = "http:" + url
-        } else if !strings.HasPrefix(url, "http") {
-                url = "https://" + url
-        }
+		url = "http:" + url
+	} else if !strings.HasPrefix(url, "http") {
+		url = "https://" + url
+	}
 
 	req, err := http.NewRequest("GET", url, nil)
 	resp, err := client.Do(req)
@@ -44,3 +44,4 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	io.Copy(w, resp.Body)
 }
+
