@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"regexp"
 )
 
 // Server used for proxy
@@ -16,7 +17,9 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &http.Client{Transport: tr}
-	url := strings.Join(strings.Split(r.URL.String(), "?")[1:], "")
+
+	re := regexp.MustCompile(`(\:\/)([^\/])`)
+	url := re.ReplaceAllString(r.URL.Path[1:], "$1/$2")
 
 	req, err := http.NewRequest("GET", url, nil)
 	resp, err := client.Do(req)
