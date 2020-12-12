@@ -16,8 +16,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &http.Client{Transport: tr}
-
-	url := r.URL.String()[1:]
+	url := strings.Join(strings.Split(r.URL.String(), "?")[1:], "")
 
 	req, err := http.NewRequest("GET", url, nil)
 	resp, err := client.Do(req)
