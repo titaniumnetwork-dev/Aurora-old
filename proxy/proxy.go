@@ -44,10 +44,10 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(contentType, "text/html") { // Uses html parsing with the (experimental library) html
 			rewrittenBody := Rewrites.Html(resp.Body)
 		}
-		if else strings.HasPrefix(contentType, "text/css") { // Uses regular expressions with the library regexp
+		if strings.HasPrefix(contentType, "text/css") { // Uses regular expressions with the library regexp
 			rewrittenBody := Rewrites.Css(resp.Body)
 		}
-		if else strings.HasPrefix(contentType, "text/js") { // Uses regular expressions with the library regexp
+		if strings.HasPrefix(contentType, "text/js") { // Uses regular expressions with the library regexp
 			rewrittenBody := Rewrites.Js(resp.Body)
 			// TODO: Add js injection code here
 		}
