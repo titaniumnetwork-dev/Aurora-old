@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	// "github.com/titaniumnetwork-dev/AuroraProxy/rewrites"
+	//	"github.com/titaniumnetwork-dev/AuroraProxy/rewrites"
 	"io"
 	"log"
 	"net/http"
@@ -11,6 +11,7 @@ import (
 )
 
 // Server used for proxy
+// TODO: If the user agent is a site blocker send a 404
 func Server(w http.ResponseWriter, r *http.Request) {
 	tr := &http.Transport{
 		MaxIdleConns:    10,
@@ -19,8 +20,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	client := &http.Client{Transport: tr}
 
-	re := regexp.MustCompile(`(\:\/)([^\/])`)
-	url := re.ReplaceAllString(r.URL.Path[1:], "$1/$2")
+	url := rewrites.ProxyUrl(r.URL.Path[1:])
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -32,28 +32,20 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
+	// TODO: Remove CORS headers
 	for key, val := range resp.Header {
+		val = rewrites.Header(key, val)
 		w.Header().Set(key, strings.Join(val, ", "))
 	}
-	// TODO: Add header rewriting via regex
 	w.WriteHeader(resp.StatusCode)
 
-	// Theoretical code in preperation for rewrites
-	/*
-		contentType := resp.Header.Get("Content-Type")
-		if strings.HasPrefix(contentType, "text/html") { // Uses html parsing with the (experimental library) html
-			rewrittenBody := Rewrites.Html(resp.Body)
-		}
-		if strings.HasPrefix(contentType, "text/css") { // Uses regular expressions with the library regexp
-			rewrittenBody := Rewrites.Css(resp.Body)
-		}
-		if strings.HasPrefix(contentType, "text/js") { // Uses regular expressions with the library regexp
-			rewrittenBody := Rewrites.Js(resp.Body)
-			// TODO: Add js injection code here
-		}
-
-		io.Copy(w, rewrittenBody)
-	*/
+	contentType := resp.Header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "text/html") {
+		body = Rewrites.Html(resp.Body)
+	}
+	if strings.HasPrefix(contentType, "text/js") {
+		body = Rewrites.Js(resp.Body)
+	}
 
 	io.Copy(w, resp.Body)
 }
