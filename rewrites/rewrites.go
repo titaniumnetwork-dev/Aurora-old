@@ -1,13 +1,12 @@
 package rewrites
 
 import (
-	// "golang.org/x/net/html"
-	"bytes"
-	"fmt"
-	"io/ioutil"
-	"log"
+	//	golang.org/x/net/html"
+	//	"bytes"
+	//	"io/ioutil"
+	//	"io"
 	"regexp"
-	"strings"
+	//	"strings"
 )
 
 func ProxyUrl(url string) string {
@@ -17,58 +16,73 @@ func ProxyUrl(url string) string {
 	return url
 }
 
+/*
 func Header(key string, val []string) []string {
 	// TODO: Continue adding more header rewrites
-	switch {
-	case key == "Location":
+	switch key {
+	case "Location":
 		// TODO: Change the global config of the status code once global config is added
-	case key == "Set-Cookie":
+	case "Set-Cookie":
 		re1 := regexp.MustCompile(`Domain=(.*?);`)
-		// TODO: Insert data once global config is added
-		val = re1.ReplaceAllString(strings.Join(val, "; "), "Domain=(insert hostname);") 
+		// TODO: Insert data once configuration is supported
+		val := re1.ReplaceAllString(strings.Join(val, "; "), "Domain=(insert hostname);")
 		re2 := regexp.MustCompile(`Path=(.*?);`)
-		// TODO: Insert data once global config is added
+		// TODO: Insert data once configuration is supported
 		val = re2.ReplaceAllString(strings.Join(val, "; "), "Path=(insert proxy path);")
 	}
 
-	val = strings.Split(val, "; ")
+	// I don't know if this would work
+	val = strings.Split(valString, "; ")
 
 	return val
 }
+*/
 
 // TODO: Add html parser rewrites
+/*
 func HTML(body io.ReadCloser) io.ReadCloser {
-	// TODO: Figure out how to actually save the changes
+	// TODO: Actually save the changes
 	tokenizer := html.NewTokenizer(body)
+	// TODO: Switch to using a while loop that ends when the file is done being parsed
 	for {
-		if tokenType := tokenizer.Next()
+		tokenType := tokenizer.Next()
 		switch tokenType {
 		case html.ErrorToken:
 			log.Fatal(tokenizer.Error())
 		case html.StartTagToken:
 			token := tokenizer.Token()
-			for _, element := range token.Attr {
-				if element.Key == "href" || element.Key == "src" || element.Key == "poster" || element.Key == "data" || element.Key == "action" || element.Key == "srcset" ||  element.Key == "data-src" || element.Key == "data-href"  {
-					if strings.HasPrefix(element.Val, "/") {
+			for _, elm := range token.Attr {
+				if elm.Key == "href" || elm.Key == "src" || elm.Key == "poster" || elm.Key == "data" || elm.Key == "action" || elm.Key == "srcset" || elm.Key == "data-src" || elm.Key == "data-href" {
+					if strings.HasPrefix(elm.Val, "/") {
 						// TODO: Insert data once configuration is supported
-						eleent.Val = "(insert proxy url)" +  element.Val
+						elm.Val = "(insert proxy url)" + elm.Val
 					}
 				}
 			}
 		}
 	}
-
 }
+*/
+
+// TODO: Add xml rewrites
+// Use https://golang.org/pkg/encoding/xml/
+
+// TODO: Add js rewrites
+// Use a js parser
 
 // TODO: Add js injection
-func Js(body io.ReadCloser) io.ReadCloser {
+/*
+func JsInject(body io.ReadCloser) io.ReadCloser {
+	// Needs to read bytes instead
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(body)
 
 	file, err := ioutil.ReadFile("inject.js")
 
+	// Don't know if this formatting will work
 	bodyBytes := append(file, buf)
-	// Convert bodyBytes to io.ReadCloser
+	// TODO: Convert bodyBytes to io.ReadCloser
 
 	return body
 }
+*/
