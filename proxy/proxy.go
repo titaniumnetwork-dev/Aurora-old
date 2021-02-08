@@ -10,9 +10,9 @@ import (
 )
 
 // Server used for proxy
-// TODO: If the user agent is a site blocker send a 404
-// TODO: Add error catching so it doesn't crash
+// TODO: Add error catching so the program doesn't crash immediately
 func Server(w http.ResponseWriter, r *http.Request) {
+	// TODO: Add the option to cap file transfer size once configuration is supported
 	tr := &http.Transport{
 		MaxIdleConns:    10,
 		IdleConnTimeout: 10 * time.Second,
@@ -20,6 +20,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	client := &http.Client{Transport: tr}
 
+	// TODO: Add the option to block user agents and send them to a blocked page once configuration is supported
 	url := rewrites.ProxyUrl(r.URL.Path[1:])
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -39,12 +40,16 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(resp.StatusCode)
 
+	// TODO: Add more content type checking due to there being alternatives used on the web
 	/*
 		contentType := resp.Header.Get("Content-Type")
 		if strings.HasPrefix(contentType, "text/html") {
 			body = rewrites.Html(resp.Body)
 		}
-		if strings.HasPrefix(contentType, "text/js") {
+		if strings.HasPrefix(contentType, "text/css") {
+			body = rewrites.Css(resp.Body)
+		}
+		if strings.HasPrefix(contentType, "text/javascript") {
 			// body = rewrites.Js(resp.Body)
 			body = rewrites.JsInject(resp.Body)
 		}

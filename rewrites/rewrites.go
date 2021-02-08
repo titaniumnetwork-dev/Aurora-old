@@ -9,6 +9,7 @@ import (
 	//	"strings"
 )
 
+// This would have to be modified in the future when path support is added
 func ProxyUrl(url string) string {
 	re := regexp.MustCompile(`(\:\/)([^\/])`)
 	url = re.ReplaceAllString(url, "$1/$2")
@@ -63,6 +64,9 @@ func HTML(body io.ReadCloser) io.ReadCloser {
 	}
 }
 */
+
+// TODO: Add css rewrites
+// Use a css parser
 
 // TODO: Add xml rewrites
 // Use https://golang.org/pkg/encoding/xml/
