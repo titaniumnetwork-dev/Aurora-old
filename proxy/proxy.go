@@ -33,27 +33,28 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// TODO: Remove CORS headers
+	// TODO: Remove CORS blocking headers
 	for key, val := range resp.Header {
-		// val = rewrites.Header(key, val)
+		val = rewrites.Header(key, val)
 		w.Header().Set(key, strings.Join(val, ", "))
 	}
+	// This would probably need to be changed in the future for when error pages are added
 	w.WriteHeader(resp.StatusCode)
 
 	// TODO: Add more content type checking due to there being alternatives used on the web
 	/*
 		contentType := resp.Header.Get("Content-Type")
-		if strings.HasPrefix(contentType, "text/html") {
-			body = rewrites.Html(resp.Body)
-		}
-		if strings.HasPrefix(contentType, "text/css") {
-			body = rewrites.Css(resp.Body)
-		}
-		if strings.HasPrefix(contentType, "text/javascript") {
-			// body = rewrites.Js(resp.Body)
-			body = rewrites.JsInject(resp.Body)
-		}
+			if strings.HasPrefix(contentType, "text/html") {
+				resp.Body = rewrites.Html(resp.Body)
+			}
+			if strings.HasPrefix(contentType, "text/css") {
+				body = rewrites.Css(resp.Body)
+			}
+			if strings.HasPrefix(contentType, "text/javascript") {
+				body = rewrites.Js(resp.Body)
+			}
 	*/
+	// Currently low priority
 	/*
 		if strings.HasPrefix(contentType, "text/xml") {
 			body = rewrites.Xml(resp.Body)
