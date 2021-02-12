@@ -1,0 +1,1 @@
+// Use golang templates to have a custom error page once config is added
