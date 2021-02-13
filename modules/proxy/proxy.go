@@ -1,12 +1,12 @@
 package proxy
 
 import (
+	//	"os"
 	"fmt"
 	"github.com/titaniumnetwork-dev/AuroraProxy/modules/rewrites"
 	"io"
 	"log"
 	"net/http"
-	//	"os"
 	"strings"
 	"time"
 )
@@ -15,19 +15,19 @@ import (
 func Server(w http.ResponseWriter, r *http.Request) {
 	// TODO: See if I can do this in main.go instead
 	/*
-	homePagePath, homePageExists := os.LookupEnv("HOMEPAGEPATH")
-	// TODO: Append ././ to homePagePath due to where the module is located
-	if r.URL.Path[1:] == "/" || homePageExists {
-		// TODO: Read proxy home page file
-		io.Copy(w, homePagePath)
-		w.WriteHeader(200)
-		return
-	}
+		homePagePath, homePageExists := os.LookupEnv("HOMEPAGEPATH")
+		homePagePath = "././" + homePagePath
+		if r.URL.Path[1:] == "/" || homePageExists {
+			// TODO: Read proxy home page file
+			io.Copy(w, homePagePath)
+			w.WriteHeader(200)
+			return
+		}
 
-	// Figure out how to get these variables to rewrites.go maybe make an environment variable
- 	Domain := r.URL
-	// TODO: Make a uri variable
-	URI :=
+		// Figure out how to get these variables to rewrites.go maybe make an environment variable
+	 	Domain := r.URL
+		// TODO: Make a uri variable
+		URI :=
 	*/
 
 	// TODO: Add the option to cap file transfer size with environment variable
