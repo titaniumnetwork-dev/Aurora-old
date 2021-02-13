@@ -11,14 +11,14 @@ import (
 func main() {
 	// TODO: Add a proxy main page at root of path
 	// TODO: Add optional support ssl enabled through environment variable
-	path, pathExists := os.LookupEnv("PATH")
+	path, pathExists := os.LookupEnv("PROXYPATH")
 	if pathExists {
 		http.HandleFunc(path, proxy.Server)
 	} else {
 		http.HandleFunc("/", proxy.Server)
 	}
 
-	port, portExists := os.LookupEnv("PORT")
+	port, portExists := os.LookupEnv("PROXYPORT")
 	if portExists {
 		err := http.ListenAndServe(port, nil)
 		if err != nil {
