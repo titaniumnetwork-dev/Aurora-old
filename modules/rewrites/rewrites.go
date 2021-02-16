@@ -2,24 +2,24 @@ package rewrites
 
 import (
 	//	"github.com/tdewolff/parse/v2/css"
-	//	"golang.org/x/net/html"
+	"golang.org/x/net/html"
 	//	"bytes"
 	//	"encoding/xml"
 	//	"io/ioutil"
-	//	"io"
-	//	"log"
+	"io"
+	"log"
 	//	"os"
-	// "github.com/titaniumnetwork-dev/AuroraProxy/modules/proxy"
+	"fmt"
 	"regexp"
 	"strings"
 )
 
 // This would have to be modified in the future when path support is added
-func ProxyUrl(url string) string {
+func ProxyUri(proxyUri string) string {
 	re := regexp.MustCompile(`(\:\/)([^\/])`)
-	url = re.ReplaceAllString(url, "$1/$2")
+	proxyUri = re.ReplaceAllString(proxyUri, "$1/$2")
 
-	return url
+	return proxyUri
 }
 
 func Header(key string, val []string) []string {
@@ -43,11 +43,11 @@ func Header(key string, val []string) []string {
 	return val
 }
 
-// TODO: Add html parser rewrites (almost done)
-/*
+// TODO: Add html parser rewrites
 func Html(body io.ReadCloser) io.ReadCloser {
 	tokenizer := html.NewTokenizer(body)
 
+	// TODO: Save changes
 	for {
 		tokenType := tokenizer.Next()
 		token := tokenizer.Token()
@@ -60,12 +60,13 @@ func Html(body io.ReadCloser) io.ReadCloser {
 		switch tokenType {
 		case html.ErrorToken:
 			log.Println(err)
+		case html.TextToken:
+			fmt.Println(tokenizer.Text())
 		case html.StartTagToken:
 			for _, elm := range token.Attr {
 				if elm.Key == "href" || elm.Key == "src" || elm.Key == "poster" || elm.Key == "data" || elm.Key == "action" || elm.Key == "srcset" || elm.Key == "data-src" || elm.Key == "data-href" {
 					if strings.HasPrefix(elm.Val, "/") {
-						// TODO: Figure out how to put uri variable in the middle of the string
-						elm.Val = "(insert proxy url)" + elm.Val
+						elm.Val = "(insert proxy uri)" + elm.Val
 					}
 				}
 			}
@@ -74,7 +75,6 @@ func Html(body io.ReadCloser) io.ReadCloser {
 	// TODO: Return io.ReadCloser body
 	return body
 }
-*/
 
 // TODO: Add css rewrites
 // TODO: Actually save the data
