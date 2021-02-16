@@ -2,6 +2,7 @@ package proxy
 
 import (
 	//	"os"
+	"encoding/base64"
 	"fmt"
 	"github.com/titaniumnetwork-dev/AuroraProxy/modules/rewrites"
 	"io"
@@ -12,24 +13,9 @@ import (
 )
 
 // Server used for proxy
+// TODO: Add an optional header blocklist to block site blockers and crawlers
+// TODO: Use seed based url obfustication
 func Server(w http.ResponseWriter, r *http.Request) {
-	// TODO: See if I can do this in main.go instead
-	/*
-		homePagePath, homePageExists := os.LookupEnv("HOMEPAGEPATH")
-		homePagePath = "././" + homePagePath
-		if r.URL.Path[1:] == "/" || homePageExists {
-			// TODO: Read proxy home page file
-			io.Copy(w, homePagePath)
-			w.WriteHeader(200)
-			return
-		}
-
-		// Figure out how to get these variables to rewrites.go maybe make an environment variable
-	 	Domain := r.URL
-		// TODO: Make a uri variable
-		URI :=
-	*/
-
 	// TODO: Add the option to cap file transfer size with environment variable
 	tr := &http.Transport{
 		MaxIdleConns:    10,
@@ -38,10 +24,18 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	client := &http.Client{Transport: tr}
 
-	// TODO: Add an optional header blocklist to block site blockers and crawlers (get info from blocklist.json file)
-	url := rewrites.ProxyUrl(r.URL.Path[1:])
+	proxyUriBytes, err := base64.StdEncoding.DecodeString(r.URL.Path[1:])
+	if err != nil {
+		// TODO: Send get error page w/ error template page (get path from environment variable)
+		fmt.Fprintf(w, "Placeholder error")
+		// TODO: Add status code header and close the response write
+		log.Println(err)
+		return
+	}
+	proxyUri := string(proxyUriBytes)
+	proxyUri = rewrites.ProxyUri(proxyUri)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", proxyUri, nil)
 	if err != nil {
 		// TODO: Send get error page w/ error template page (get path from environment variable)
 		fmt.Fprintf(w, "Placeholder error")
