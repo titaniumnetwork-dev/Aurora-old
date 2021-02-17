@@ -29,6 +29,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		// TODO: Send get error page w/ error template page (get path from environment variable)
 		fmt.Fprintf(w, "Placeholder error")
 		// TODO: Add status code header and close the response write
+		w.WriteHeader(500)
 		log.Println(err)
 		return
 	}
@@ -40,6 +41,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		// TODO: Send get error page w/ error template page (get path from environment variable)
 		fmt.Fprintf(w, "Placeholder error")
 		// TODO: Add status code header and close the response writer
+		w.WriteHeader(500)
 		log.Println(err)
 		return
 	}
@@ -48,6 +50,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		// TODO: Send get error page w/ error template page (get path from environment variable)
 		fmt.Fprintf(w, "Placeholder error")
 		// TODO: Add status code header and close the response write
+		w.WriteHeader(500)
 		log.Println(err)
 		return
 	}
