@@ -3,25 +3,25 @@ package rewrites
 import (
 	//	"github.com/tdewolff/parse/v2/css"
 	"golang.org/x/net/html"
-	//	"bytes"
 	//	"encoding/xml"
-	//	"io/ioutil"
+	"io/ioutil"
 	"io"
-	"log"
-	//	"os"
 	"fmt"
+	//	"os"
 	"regexp"
 	"strings"
 )
 
 // This would have to be modified in the future when path support is added
 func ProxyUri(proxyUri string) string {
+	// TODO: Support paths
 	re := regexp.MustCompile(`(\:\/)([^\/])`)
 	proxyUri = re.ReplaceAllString(proxyUri, "$1/$2")
 
 	return proxyUri
 }
 
+// TODO: Write a proper header parser
 func Header(key string, val []string) []string {
 	// TODO: Continue adding more header rewrites
 	valStr := strings.Join(val, "; ")
@@ -43,41 +43,54 @@ func Header(key string, val []string) []string {
 	return val
 }
 
-// TODO: Add html parser rewrites
 func Html(body io.ReadCloser) io.ReadCloser {
 	tokenizer := html.NewTokenizer(body)
+	out := ""
 
-	// TODO: Save changes
 	for {
 		tokenType := tokenizer.Next()
 		token := tokenizer.Token()
 
-		err := tokenizer.Err()
-		if err == io.EOF {
-			break
-		}
-
-		switch tokenType {
+		// Order based on docs
+		switch (tokenType) {
 		case html.ErrorToken:
-			log.Println(err)
+			err := tokenizer.Err()
+			if err == io.EOF {
+				break
+			}
 		case html.TextToken:
-			fmt.Println(tokenizer.Text())
+			out += token.Data
 		case html.StartTagToken:
+			attr := ""
 			for _, elm := range token.Attr {
 				if elm.Key == "href" || elm.Key == "src" || elm.Key == "poster" || elm.Key == "data" || elm.Key == "action" || elm.Key == "srcset" || elm.Key == "data-src" || elm.Key == "data-href" {
+					// TODO: Support custom paths
 					if strings.HasPrefix(elm.Val, "/") {
-						elm.Val = "(insert proxy uri)" + elm.Val
+						elm.Val = "https://e93c3221b7e9.ngrok.io" + "/" + "aHR0cHM6Ly9nb29nbGUuY29tLw==" + elm.Val
+					} else {
+						elm.Val = "https://e93c3221b7e9.ngrok.io" + "/" + elm.Val
 					}
 				}
+				attr += " " + elm.Key + "=" + "\"" + elm.Val + "\""
 			}
+			out += "<" + token.Data + attr + ">"
+		case html.EndTagToken:
+			out += "</" + token.Data + ">"
+		case html.SelfClosingTagToken:
+			out += "<" + token.Data + "/>"
+		case html.CommentToken:
+			//	out += token.Data
+		case html.DoctypeToken:
+			//	out += token.Data
 		}
 	}
-	// TODO: Return io.ReadCloser body
+	fmt.Println(out)
+	body = ioutil.NopCloser(strings.NewReader(out))
+	body.Close()
 	return body
 }
 
 // TODO: Add css rewrites
-// TODO: Actually save the data
 // See https://github.com/tdewolff/parse/tree/master/css
 /*
 func Css(body io.ReadCloser) io.ReadCloser {

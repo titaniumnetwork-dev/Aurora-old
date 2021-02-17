@@ -26,10 +26,9 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	proxyUriBytes, err := base64.StdEncoding.DecodeString(r.URL.Path[1:])
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		// TODO: Send get error page w/ error template page (get path from environment variable)
 		fmt.Fprintf(w, "Placeholder error")
-		// TODO: Add status code header and close the response write
-		w.WriteHeader(500)
 		log.Println(err)
 		return
 	}
@@ -38,19 +37,17 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	req, err := http.NewRequest("GET", proxyUri, nil)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		// TODO: Send get error page w/ error template page (get path from environment variable)
 		fmt.Fprintf(w, "Placeholder error")
-		// TODO: Add status code header and close the response writer
-		w.WriteHeader(500)
 		log.Println(err)
 		return
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		// TODO: Send get error page w/ error template page (get path from environment variable)
 		fmt.Fprintf(w, "Placeholder error")
-		// TODO: Add status code header and close the response write
-		w.WriteHeader(500)
 		log.Println(err)
 		return
 	}
@@ -64,22 +61,22 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 
 	// TODO: Add more content type checking due to there being alternatives used on the web
+	contentType := resp.Header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "text/html") {
+		resp.Body = rewrites.Html(resp.Body)
+	}
 	/*
-		contentType := resp.Header.Get("Content-Type")
-		if strings.HasPrefix(contentType, "text/html") {
-			resp.Body = rewrites.Html(resp.Body)
-		}
 		if strings.HasPrefix(contentType, "text/css") {
-			body = rewrites.Css(resp.Body)
+			resp.Body = rewrites.Css(resp.Body)
 		}
 		if strings.HasPrefix(contentType, "text/javascript") {
-			body = rewrites.Js(resp.Body)
+			resp.Body = rewrites.Js(resp.Body)
 		}
 	*/
 	// Currently low priority
 	/*
 		if strings.HasPrefix(contentType, "text/xml") {
-			body = rewrites.Xml(resp.Body)
+			resp.Body = rewrites.Xml(resp.Body)
 		}
 	*/
 
