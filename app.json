@@ -1,0 +1,7 @@
+{
+  "name": "Aurora Proxy",
+  "description": "A fast and powerful web proxy created in Golang that supports ReCaptcha and most websites.",
+  "repository": "https://github.com/titaniumnetwork-dev/AuroraProxy",
+  "logo": "https://seeklogo.com/images/G/go-logo-046185B647-seeklogo.com.png",
+  "keywords": ["proxy", "filter", "bypass"]
+}
