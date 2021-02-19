@@ -43,10 +43,10 @@ body {
     background-color: black;
     color: white;
     padding: .1em;
+    transition: 0.5s all ease-in-out;
 }
 
 .wrapper #button:hover {
-    transition: 0.5s all ease-in-out;
     color: white;
     background-color: rgb(255, 104, 104);
     border-color: rgb(255, 104, 104);
