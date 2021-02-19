@@ -24,34 +24,40 @@ body {
     font-family: 'Open Sans';
 }
 
+.wrapper #group {
+    height: 2.5em;
+}
+
 .wrapper #omnibox {
     width: 18em;
-    height: 2em;
+    height: 100%;
+    padding: .1em;
+    padding-inline: .5em;
+    color: white;
     font-size: 1.2em;
     border-style: solid;
     border-color: white;
     background-color: black;
-    color: white;
-    padding: .1em;
-    padding-inline: .5em;
+    box-sizing: border-box;
 }
 
 .wrapper #button {
     width: 3em;
-    height: 2.4em;
+    height: 100%;
+    padding: .1em;
+    color: white;
     font-size: 1.2em;
     border-style: solid;
     border-color: white;
     background-color: black;
-    color: white;
-    padding: .1em;
     transition: 0.5s all ease-in-out;
+    box-sizing: border-box;
 }
 
 .wrapper #button:hover {
     color: white;
     background-color: rgb(255, 104, 104);
-    border-color: rgb(255, 104, 104);
+    border-color: white;
 }
 
 .wrapper icon {
