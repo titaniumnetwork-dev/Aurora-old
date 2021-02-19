@@ -1,24 +1,22 @@
 <!DOCTYPE html>
 <html>
-
-<head>
+  <head>
     <meta charset="utf-8">
-    <link rel="stylesheet" href="style.css">
-    <title>Home | Aurora</title>
-    <script type="module" src="https://unpkg.com/ionicons@5.1.2/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule="" src="https://unpkg.com/ionicons@5.1.2/dist/ionicons/ionicons.js"></script>
-</head>
-
-<body>
-    <div class="wrapper">
-        <h1>Aurora Pr<wbr>oxy</h1>
-        <p>A fast and powerful pr<wbr>oxy made in golang.</p>
-        <input id="omnibox" type="text" placeholder="Search or enter a URI/URL">
-        <button id="button">Go</button>
-        <a href="https://github.com/titaniumnetwork-dev/AuroraProxy">
-            <ion-icon name="logo-github"></ion-icon>
-        </a>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Aurora</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style/style.css">
+    <link rel="stylesheet" href="./style/animate.min.css">
+  </head>
+  <body>
+    <!-- The Header (where the Aurora text would be pulsating endlessly..) -->
+    <h1 class="header animate__animated animate__pulse animate__infinite">Aurora</h1>
+    
+    <div>
+      <input type="text" placeholder="https://example.com" autocomplete="off" style="color: white;" class="animate__animated animate__backInUp">
+      <input type="submit" value="GO!" class="go animate__animated animate__backInDown">
     </div>
-</body>
-
+      
+  </body>
 </html>
