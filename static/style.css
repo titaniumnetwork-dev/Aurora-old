@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300&display=swap');
+body {
+    background-color: black;
+}
+
+.wrapper {
+    padding-top: 3em;
+    text-align: center;
+    font-family: Roboto;
+}
+
+.wrapper h1 {
+    font-size: 3.5em;
+    padding: .1em;
+    color: rgb(255, 104, 104);
+    font-weight: bold;
+}
+
+.wrapper p {
+    font-size: 1.5em;
+    color: white;
+    font-family: 'Open Sans';
+}
+
+.wrapper #omnibox {
+    width: 17.5em;
+    height: 2em;
+    font-size: 1.2em;
+    border-style: solid;
+    border-color: white;
+    background-color: black;
+    color: white;
+    padding: .1em;
+}
+
+.wrapper #button {
+    width: 3em;
+    height: 2.5em;
+    font-size: 1.2em;
+    border-style: solid;
+    border-color: white;
+    background-color: black;
+    color: white;
+    padding: .1em;
+}
+
+.wrapper #button:hover {
+    transition: 0.5s all ease-in-out;
+    color: white;
+    background-color: rgb(255, 104, 104);
+    border-color: rgb(255, 104, 104);
+}
+
+.wrapper ion-icon {
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-size: 2em;
+    padding: .1em;
+    border-width: 0.01em;
+    border-radius: 20px;
+    border-style: solid;
+    border-color: rgb(255, 104, 104);
+    color: rgb(255, 104, 104);
+}
