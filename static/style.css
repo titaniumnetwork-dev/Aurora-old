@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300&display=swap');
 body {
@@ -43,10 +44,10 @@ body {
     background-color: black;
     color: white;
     padding: .1em;
+    transition: 0.5s all ease-in-out;
 }
 
 .wrapper #button:hover {
-    transition: 0.5s all ease-in-out;
     color: white;
     background-color: rgb(255, 104, 104);
     border-color: rgb(255, 104, 104);
@@ -55,7 +56,7 @@ body {
 .wrapper ion-icon {
     position: absolute;
     left: 50%;
-    top: 40%;
+    top: 53%;
     transform: translate(-50%, -50%);
     text-align: center;
     font-size: 2em;
