@@ -1,6 +1,6 @@
 # Aurora Proxy
 A fast and powerful proxy made in golang. This project has just recently started development and should not be used until official release.
-[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/titaniumnetwork-dev/AuroraProxy)
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/ev0pium/AuroraProxy)
 
 # Deploying Information
 I am planning on adding cross architecture docker containers listed on both heroku and dockerhub. These builds will be automated by some sort of CI system that makes a new build of the containers every time a new commit is pushed to the repository. For now you can just use *go run*.
