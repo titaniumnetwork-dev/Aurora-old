@@ -17,7 +17,7 @@ func main() {
 		http.HandleFunc(global.Prefix, proxy.Server)
 		http.Handle("/", http.FileServer(http.Dir("./static")))
 	} else {
-		log.Fatal("You need to specify a path")
+		log.Fatal("You need to specify a prefix")
 	}
 
 	// TODO: Change env name to PORT
