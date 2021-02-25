@@ -13,23 +13,25 @@ import (
 	"net/url"
 	"bytes"
 	"regexp"
+	"log"
 	"strings"
 )
 
 // TODO: Write a proper header parser
 func Header(key string, val []string) []string {
-	// TODO: Continue adding more header rewrites
 	valStr := strings.Join(val, "; ")
 
+	// TODO: Continue adding more header rewrites
 	switch key {
 	case "Location":
 		// TODO: Change the global config of the status code once global config is added
 	case "Set-Cookie":
 		// TODO: Fix broken regex
 		re1 := regexp.MustCompile(`Domain=(.*?);`)
-		valStr = re1.ReplaceAllString(valStr, "Domain="+global.URI+";")
+		valStr = re1.ReplaceAllString(valStr, "Domain=" + global.URI + ";")
 		re2 := regexp.MustCompile(`Path=(.*?);`)
-		valStr = re2.ReplaceAllString(valStr, "Path="+global.Path+";")
+		// TODO: This won't work when base64 is fully encoded maybe I can use a cookiejar and split the path in the future
+		valStr = re2.ReplaceAllString(valStr, "Path=" + global.Path + ";")
 	}
 
 	val = strings.Split(valStr, "; ")
@@ -50,13 +52,11 @@ func elmAttrRewrite(key string, val string) string {
 	return attr
 }
 
-// TODO: include womginx in inline and element scripts
 func Html(body io.ReadCloser) io.ReadCloser {
 	tokenizer := html.NewTokenizer(body)
 	out := ""
 
 	for {
-		// Maybe they can be combined like in CSS
 		tokenType := tokenizer.Next()
 		token := tokenizer.Token()
 
@@ -74,7 +74,6 @@ func Html(body io.ReadCloser) io.ReadCloser {
 				attr += elmAttrRewrite(elm.Key, elm.Val)
 			}
 			out += "<" + token.Data + attr + ">"
-			// fmt.Println("<" + token.Data + attr + ">")
 		case html.EndTagToken:
 			out += "</" + token.Data + ">"
 		case html.SelfClosingTagToken:
@@ -89,8 +88,6 @@ func Html(body io.ReadCloser) io.ReadCloser {
 			out += "<!DOCTYPE " + token.Data + ">"
 		}
 	}
-
-	// fmt.Println(out)
 
 	body = ioutil.NopCloser(strings.NewReader(out))
 	body.Close()
@@ -130,14 +127,18 @@ func Css(body io.ReadCloser) io.ReadCloser {
 
 // TODO: Add js injection
 func Js(body io.ReadCloser) io.ReadCloser {
-	// Needs to read bytes instead
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(body)
 	bodyString := buf.String()
 
-	//	file, err := ioutil.ReadFile("././static/inject.js")
+	// TODO: Have newlines
+	fileBytes, err := ioutil.ReadFile("././static/inject.js")
+	if err != nil {
+		log.Println(err)
+	}
+	file := string(fileBytes)
 
-	out := bodyString
+	out := file + bodyString
 	fmt.Println(out)
 
 	body = ioutil.NopCloser(strings.NewReader(out))
