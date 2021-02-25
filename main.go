@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/titaniumnetwork-dev/AuroraProxy/modules/global"
 	"github.com/titaniumnetwork-dev/AuroraProxy/modules/proxy"
 	"log"
 	"net/http"
@@ -10,25 +11,27 @@ import (
 func main() {
 	// TODO: Add a proxy main page at root of path
 	// TODO: Figure out how to pass config to a container
-	// Path doesn't work?
-	path, pathExists := os.LookupEnv("PROXYPATH")
-	if pathExists {
-		http.HandleFunc(path, proxy.Server)
+	// TODO: Change env name to prefix
+	global.Prefix, global.PrefixExists = os.LookupEnv("PROXYPATH")
+	if global.PrefixExists {
+		http.HandleFunc(global.Prefix, proxy.Server)
+		http.Handle("/", http.FileServer(http.Dir("./static")))
 	} else {
 		log.Fatal("You need to specify a path")
 	}
 
-	port, portExists := os.LookupEnv("PROXYPORT")
-	if portExists {
-		sslCert, sslCertExists := os.LookupEnv("CERTPATH")
-		sslKey, sslKeyExists := os.LookupEnv("KEYPATH")
-		if sslCertExists && sslKeyExists {
-			err := http.ListenAndServeTLS(port, sslCert, sslKey, nil)
+	// TODO: Change env name to PORT
+	global.Port, global.PortExists = os.LookupEnv("PROXYPORT")
+	if global.PortExists {
+		if global.SSLCertExists && global.SSLKeyExists {
+			global.SSLCert, global.SSLCertExists = os.LookupEnv("CERTPATH")
+			global.SSLKey, global.SSLKeyExists = os.LookupEnv("KEYPATH")
+			err := http.ListenAndServeTLS(global.Port, global.SSLCert, global.SSLKey, nil)
 			if err != nil {
 				log.Fatal(err)
 			}
 		} else {
-			err := http.ListenAndServe(port, nil)
+			err := http.ListenAndServe(global.Port, nil)
 			if err != nil {
 				log.Fatal(err)
 			}

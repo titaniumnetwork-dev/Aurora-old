@@ -1,0 +1,1 @@
+self.submit=(o=document.getElementById`omnibox`.value,a='https://',b=/^\w+:./.test(o))=>o[0]&&(location.pathname='go/'+btoa(/\w+.\w/.test(o)|b?(a=(b=new URL(b?o:o=a+o)).origin[4]?b.origin:b.href.slice(0,b.href.indexOf(b.search||b.hash)||a.$))+'/':o)+o.slice(b&&a.length).replace(/^\//,[]));
