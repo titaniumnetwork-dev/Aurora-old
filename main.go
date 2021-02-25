@@ -12,7 +12,7 @@ func main() {
 	// TODO: Add a proxy main page at root of path
 	// TODO: Figure out how to pass config to a container
 	// TODO: Change env name to prefix
-	global.Prefix, global.PrefixExists = os.LookupEnv("PROXYPATH")
+	global.Prefix, global.PrefixExists = os.LookupEnv("PREFIX")
 	if global.PrefixExists {
 		http.HandleFunc(global.Prefix, proxy.Server)
 		http.Handle("/", http.FileServer(http.Dir("./static")))
@@ -21,7 +21,7 @@ func main() {
 	}
 
 	// TODO: Change env name to PORT
-	global.Port, global.PortExists = os.LookupEnv("PROXYPORT")
+	global.Port, global.PortExists = os.LookupEnv("PORT")
 	if global.PortExists {
 		if global.SSLCertExists && global.SSLKeyExists {
 			global.SSLCert, global.SSLCertExists = os.LookupEnv("CERTPATH")
