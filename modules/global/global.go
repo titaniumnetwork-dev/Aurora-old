@@ -4,16 +4,11 @@ package global
 
 // TODO: Actually get the correct proto in proxy.go
 var Proto = "http://"
-var Path string
 var Host string
+var Path string
 var URI string
 
-var ProxyFragment string
-var ProxyQuery string
-var ProxyPath string
-var ProxyHost string
 var ProxyURI string
-var ProxyURIB64 string
 
 var Prefix string
 var PrefixExists bool
