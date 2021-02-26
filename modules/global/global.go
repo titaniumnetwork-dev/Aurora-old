@@ -1,9 +1,7 @@
 package global
 
-// TODO: Delete the unused declared variables
-
 // TODO: Actually get the correct proto in proxy.go
-var Proto = "http://"
+var Scheme string
 var Host string
 var Path string
 var URI string

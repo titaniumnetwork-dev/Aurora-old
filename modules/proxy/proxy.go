@@ -1,14 +1,13 @@
 package proxy
 
 import (
-	"encoding/base64"
-	"fmt"
 	"github.com/titaniumnetwork-dev/AuroraProxy/modules/global"
 	"github.com/titaniumnetwork-dev/AuroraProxy/modules/rewrites"
+	"encoding/base64"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
-	//	"net/url"
 	"strings"
 	"time"
 )
@@ -16,12 +15,18 @@ import (
 // Server used for proxy
 func Server(w http.ResponseWriter, r *http.Request) {
 	blockedUserAgents := [0]string{}
-	for i := 0; i < len(blockedUserAgents); i++ {
-		if blockedUserAgents[i] == r.UserAgent() {
+	for _, userAgent := range blockedUserAgents {
+		if userAgent == r.UserAgent() {
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprintf(w, "401 not allowed")
 			return
 		}
+	}
+
+	if r.TLS != nil {
+		global.Scheme = "https://"
+	} else {
+		global.Scheme = "http://"
 	}
 
 	global.Host = r.Host
@@ -35,13 +40,6 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	global.ProxyURI = string(proxyURIBytes)
-
-	/*
-	proxyURIParsed, err := url.Parse(global.ProxyURI)
-	if err != nil {
-		log.Println(err)
-	}
-	*/
 
 	// TODO: Add the option to cap file transfer size with environment variable
 	tr := &http.Transport{
@@ -79,7 +77,6 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 
 	// TODO: Rewrite audio/video metadata for streams
-	// TODO: Not being checked correctly
 	contentType := resp.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "text/html") {
 		resp.Body = rewrites.Html(resp.Body)
