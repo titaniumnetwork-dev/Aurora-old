@@ -2,13 +2,13 @@ package rewrites
 
 import (
 	//	"github.com/tdewolff/parse/v2/css"
+	//	"encoding/xml"
+	//	"os"
 	"github.com/titaniumnetwork-dev/AuroraProxy/modules/global"
 	"golang.org/x/net/html"
-	//	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
-	//	"os"
 	"encoding/base64"
 	"net/url"
 	"bytes"
@@ -43,9 +43,9 @@ func elmAttrRewrite(key string, val string) string {
 	if key == "href" || key == "src" || key == "poster" || key == "data" || key == "action" || key == "srcset" || key == "data-src" || key == "data-href" {
 		attrURI, err := url.Parse(val)
 		if err != nil || attrURI.Scheme == "" || attrURI.Host == "" {
-			val = global.Proto + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURI + val))
+			val = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURI + val))
 		} else {
-			val = global.Proto + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(val))
+			val = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(val))
 		}
 	}
 	attr := " " + key + "=" + "\"" + val + "\""
