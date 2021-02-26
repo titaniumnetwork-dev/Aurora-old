@@ -79,15 +79,13 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	// TODO: Rewrite audio/video metadata for streams
 	contentType := resp.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "text/html") {
-		resp.Body = rewrites.Html(resp.Body)
+		resp.Body = rewrites.HTML(resp.Body)
 	}
-	/*
-		if strings.HasPrefix(contentType, "text/css") {
-			resp.Body = rewrites.Css(resp.Body)
-		}
-	*/
+	if strings.HasPrefix(contentType, "text/css") {
+		resp.Body = rewrites.CSS(resp.Body)
+	}
 	if strings.HasPrefix(contentType, "application/javascript") {
-		resp.Body = rewrites.Js(resp.Body)
+		resp.Body = rewrites.JS(resp.Body)
 	}
 	// Currently low priority
 	/*

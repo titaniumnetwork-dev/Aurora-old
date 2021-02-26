@@ -1,12 +1,11 @@
 package rewrites
 
 import (
-	//	"github.com/tdewolff/parse/v2/css"
-	//	"encoding/xml"
-	//	"os"
 	"github.com/titaniumnetwork-dev/AuroraProxy/modules/global"
 	"golang.org/x/net/html"
-	"fmt"
+	"github.com/tdewolff/parse/v2"
+	"github.com/tdewolff/parse/v2/css"
+	//	"encoding/xml"
 	"io"
 	"io/ioutil"
 	"encoding/base64"
@@ -39,20 +38,20 @@ func Header(key string, val []string) []string {
 	return val
 }
 
-func elmAttrRewrite(key string, val string) string {
+func elmAttr(key string, val string) string {
 	if key == "href" || key == "src" || key == "poster" || key == "data" || key == "action" || key == "srcset" || key == "data-src" || key == "data-href" {
 		attrURI, err := url.Parse(val)
 		if err != nil || attrURI.Scheme == "" || attrURI.Host == "" {
-			val = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURI + val))
+			val = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.ProxyURI + val))
 		} else {
-			val = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(val))
+			val = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(val))
 		}
 	}
 	attr := " " + key + "=" + "\"" + val + "\""
 	return attr
 }
 
-func Html(body io.ReadCloser) io.ReadCloser {
+func HTML(body io.ReadCloser) io.ReadCloser {
 	tokenizer := html.NewTokenizer(body)
 	out := ""
 
@@ -71,7 +70,7 @@ func Html(body io.ReadCloser) io.ReadCloser {
 		case html.StartTagToken:
 			attr := ""
 			for _, elm := range token.Attr {
-				attr += elmAttrRewrite(elm.Key, elm.Val)
+				attr += elmAttr(elm.Key, elm.Val)
 			}
 			out += "<" + token.Data + attr + ">"
 		case html.EndTagToken:
@@ -79,7 +78,7 @@ func Html(body io.ReadCloser) io.ReadCloser {
 		case html.SelfClosingTagToken:
 			attr := ""
 			for _, elm := range token.Attr {
-				attr += elmAttrRewrite(elm.Key, elm.Val)
+				attr += elmAttr(elm.Key, elm.Val)
 			}
 			out += "<" + token.Data + attr + "/>"
 		case html.CommentToken:
@@ -94,22 +93,33 @@ func Html(body io.ReadCloser) io.ReadCloser {
 	return body
 }
 
-// TODO: Add css rewrites
-// See https://github.com/tdewolff/parse/tree/master/css
-/*
-func Css(body io.ReadCloser) io.ReadCloser {
-	// I'm unsure if this will work with io.ReadCloser
+func CSS(body io.ReadCloser) io.ReadCloser {
 	tokenizer := css.NewLexer(parse.NewInput(body))
+	out := ""
 
-	fmt.Println("Debug: HTML rewrites")
 	for {
-		tokenType, token := tokenizer.Next()
-		// TODO: Check eof error and break if so
+		tokenType, tokenBytes := tokenizer.Next()
+
+		err := tokenizer.Err()
+		if err == io.EOF {
+			break
+		}
 
 		switch tokenType {
 		case css.URLToken:
+			data := strings.Replace(string(tokenBytes), "url(", "", 4)
+			data = strings.Replace(string(data), ")", "", 1)
+		
+			uri, err := url.Parse(data)
+			if err != nil || uri.Scheme == "" || uri.Host == "" {
+				data = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURI + data))
+			} else {
+				data = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(data))
+			}
+	
+			out += "url(" + data + ")"
 		default:
-			out += token.Data
+			out += string(tokenBytes)
 		}
 	}
 
@@ -117,7 +127,6 @@ func Css(body io.ReadCloser) io.ReadCloser {
 	body.Close()
 	return body
 }
-*/
 
 // TODO: Add xml rewrites for external entities (low priority)
 // Use https://golang.org/pkg/encoding/xml/
@@ -126,7 +135,7 @@ func Css(body io.ReadCloser) io.ReadCloser {
 // Use https://github.com/rustyoz/svg/
 
 // TODO: Add js injection
-func Js(body io.ReadCloser) io.ReadCloser {
+func JS(body io.ReadCloser) io.ReadCloser {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(body)
 	bodyString := buf.String()
@@ -139,7 +148,6 @@ func Js(body io.ReadCloser) io.ReadCloser {
 	file := string(fileBytes)
 
 	out := file + bodyString
-	fmt.Println(out)
 
 	body = ioutil.NopCloser(strings.NewReader(out))
 	body.Close()
