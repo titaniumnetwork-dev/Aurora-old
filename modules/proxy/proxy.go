@@ -23,6 +23,10 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// TODO: Add optional cookie whitelist that can be enabled in config
+	// Use cookiejar see http documentation
+	// This should stop site blockers
+
 	if r.TLS != nil {
 		global.Scheme = "https://"
 	} else {
