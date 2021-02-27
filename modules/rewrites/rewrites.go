@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"log"
 	"strings"
+	"fmt"
 )
 
 // TODO: Write a proper header parser
@@ -98,7 +99,7 @@ func CSS(body io.ReadCloser) io.ReadCloser {
 	out := ""
 
 	for {
-		tokenType, tokenBytes := tokenizer.Next()
+		tokenType, token := tokenizer.Next()
 
 		err := tokenizer.Err()
 		if err == io.EOF {
@@ -106,8 +107,21 @@ func CSS(body io.ReadCloser) io.ReadCloser {
 		}
 
 		switch tokenType {
+		case css.StringToken:
+			data := strings.Replace(string(token), "'", "", 1)
+			data = strings.Replace(string(data), "'", "", 1)
+
+			if strings.HasPrefix(data, "/") {
+				data = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.ProxyURI + data))
+			} else if strings.HasPrefix(data, "https://") || strings.HasPrefix(data, "https://") {
+				data = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(data))
+			}
+		
+			fmt.Println("'" + data + "'")
+
+			out += data
 		case css.URLToken:
-			data := strings.Replace(string(tokenBytes), "url(", "", 4)
+			data := strings.Replace(string(token), "url(", "", 4)
 			data = strings.Replace(string(data), ")", "", 1)
 		
 			uri, err := url.Parse(data)
@@ -119,7 +133,7 @@ func CSS(body io.ReadCloser) io.ReadCloser {
 	
 			out += "url(" + data + ")"
 		default:
-			out += string(tokenBytes)
+			out += string(token)
 		}
 	}
 
