@@ -35,15 +35,15 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	global.Host = r.Host
 
-	proxyURIB64 := r.URL.Path[len(global.Prefix):]
-	proxyURIBytes, err := base64.URLEncoding.DecodeString(proxyURIB64)
+	proxyURLB64 := r.URL.Path[len(global.Prefix):]
+	proxyURLBytes, err := base64.URLEncoding.DecodeString(proxyURLB64)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "500, %s", err)
 		log.Println(err)
 		return
 	}
-	global.ProxyURI = string(proxyURIBytes)
+	global.ProxyURL = string(proxyURLBytes)
 
 	// TODO: Add the option to cap file transfer size with environment variable
 	tr := &http.Transport{
@@ -53,7 +53,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	client := &http.Client{Transport: tr}
 
-	req, err := http.NewRequest("GET", global.ProxyURI, nil)
+	req, err := http.NewRequest("GET", global.ProxyURL, nil)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "404, %s", err)
@@ -87,9 +87,6 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(contentType, "text/css") {
 		resp.Body = rewrites.CSS(resp.Body)
-	}
-	if strings.HasPrefix(contentType, "application/javascript") {
-		resp.Body = rewrites.JS(resp.Body)
 	}
 	// Currently low priority
 	/*

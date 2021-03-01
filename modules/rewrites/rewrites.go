@@ -10,11 +10,8 @@ import (
 	"io/ioutil"
 	"encoding/base64"
 	"net/url"
-	"bytes"
 	"regexp"
-	"log"
 	"strings"
-	"fmt"
 )
 
 // TODO: Write a proper header parser
@@ -28,7 +25,7 @@ func Header(key string, val []string) []string {
 	case "Set-Cookie":
 		// TODO: Fix broken regex
 		re1 := regexp.MustCompile(`Domain=(.*?);`)
-		valStr = re1.ReplaceAllString(valStr, "Domain=" + global.URI + ";")
+		valStr = re1.ReplaceAllString(valStr, "Domain=" + global.URL + ";")
 		re2 := regexp.MustCompile(`Path=(.*?);`)
 		// TODO: This won't work when base64 is fully encoded maybe I can use a cookiejar and split the path in the future
 		valStr = re2.ReplaceAllString(valStr, "Path=" + global.Path + ";")
@@ -41,9 +38,9 @@ func Header(key string, val []string) []string {
 
 func elmAttr(key string, val string) string {
 	if key == "href" || key == "src" || key == "poster" || key == "data" || key == "action" || key == "srcset" || key == "data-src" || key == "data-href" {
-		attrURI, err := url.Parse(val)
-		if err != nil || attrURI.Scheme == "" || attrURI.Host == "" {
-			val = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.ProxyURI + val))
+		attrURL, err := url.Parse(val)
+		if err != nil || attrURL.Scheme == "" || attrURL.Host == "" {
+			val = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.ProxyURL + val))
 		} else {
 			val = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(val))
 		}
@@ -64,7 +61,7 @@ func HTML(body io.ReadCloser) io.ReadCloser {
 		if err == io.EOF {
 			break
 		}
-
+	
 		switch tokenType {
 		case html.TextToken:
 			out += token.Data
@@ -73,7 +70,16 @@ func HTML(body io.ReadCloser) io.ReadCloser {
 			for _, elm := range token.Attr {
 				attr += elmAttr(elm.Key, elm.Val)
 			}
+		
 			out += "<" + token.Data + attr + ">"
+		
+			// TODO: Insert config.json into attribute like alloy
+			if token.Data == "head" {
+				out += "<script src=\"/js/inject.js\"></script>"
+			}
+			if token.Data == "style" {
+				// TODO: Send this to CSS rewrite function
+			}
 		case html.EndTagToken:
 			out += "</" + token.Data + ">"
 		case html.SelfClosingTagToken:
@@ -81,6 +87,7 @@ func HTML(body io.ReadCloser) io.ReadCloser {
 			for _, elm := range token.Attr {
 				attr += elmAttr(elm.Key, elm.Val)
 			}
+
 			out += "<" + token.Data + attr + "/>"
 		case html.CommentToken:
 			out += "<!--" + token.Data + "-->"
@@ -112,21 +119,19 @@ func CSS(body io.ReadCloser) io.ReadCloser {
 			data = strings.Replace(string(data), "'", "", 1)
 
 			if strings.HasPrefix(data, "/") {
-				data = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.ProxyURI + data))
+				data = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.ProxyURL + data))
 			} else if strings.HasPrefix(data, "https://") || strings.HasPrefix(data, "https://") {
 				data = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(data))
 			}
-		
-			fmt.Println("'" + data + "'")
 
 			out += data
 		case css.URLToken:
 			data := strings.Replace(string(token), "url(", "", 4)
 			data = strings.Replace(string(data), ")", "", 1)
 		
-			uri, err := url.Parse(data)
-			if err != nil || uri.Scheme == "" || uri.Host == "" {
-				data = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURI + data))
+			url, err := url.Parse(data)
+			if err != nil || url.Scheme == "" || url.Host == "" {
+				data = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURL + data))
 			} else {
 				data = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(data))
 			}
@@ -147,23 +152,3 @@ func CSS(body io.ReadCloser) io.ReadCloser {
 
 // TODO: Add svg rewrites
 // Use https://github.com/rustyoz/svg/
-
-// TODO: Add js injection
-func JS(body io.ReadCloser) io.ReadCloser {
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(body)
-	bodyString := buf.String()
-
-	// TODO: Have newlines
-	fileBytes, err := ioutil.ReadFile("././static/inject.js")
-	if err != nil {
-		log.Println(err)
-	}
-	file := string(fileBytes)
-
-	out := file + bodyString
-
-	body = ioutil.NopCloser(strings.NewReader(out))
-	body.Close()
-	return body
-}
