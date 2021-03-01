@@ -1,12 +1,11 @@
 package global
 
-// TODO: Actually get the correct proto in proxy.go
 var Scheme string
 var Host string
 var Path string
-var URI string
+var URL string
 
-var ProxyURI string
+var ProxyURL string
 
 var Prefix string
 var PrefixExists bool
