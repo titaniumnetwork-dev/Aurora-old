@@ -28,9 +28,9 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	// This should stop site blockers
 
 	if r.TLS != nil {
-		global.Scheme = "https://"
+		global.Scheme = "https:"
 	} else {
-		global.Scheme = "http://"
+		global.Scheme = "http:"
 	}
 
 	global.Host = r.Host

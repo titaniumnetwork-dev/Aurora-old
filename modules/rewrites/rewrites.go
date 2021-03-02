@@ -40,9 +40,9 @@ func elmAttr(key string, val string) string {
 	if key == "href" || key == "src" || key == "poster" || key == "data" || key == "action" || key == "srcset" || key == "data-src" || key == "data-href" {
 		attrURL, err := url.Parse(val)
 		if err != nil || attrURL.Scheme == "" || attrURL.Host == "" {
-			val = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.ProxyURL + val))
+			val = global.Scheme + "//" + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.ProxyURL + val[1:]))
 		} else {
-			val = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(val))
+			val = global.Scheme + "//" + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(val))
 		}
 	}
 	attr := " " + key + "=" + "\"" + val + "\""
@@ -75,7 +75,7 @@ func HTML(body io.ReadCloser) io.ReadCloser {
 		
 			// TODO: Insert config.json into attribute like alloy
 			if token.Data == "head" {
-				out += "<script src=\"/js/inject.js\"></script>"
+				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\"" + global.ProxyURL + "\"}")) + "\"></script>"
 			}
 			if token.Data == "style" {
 				// TODO: Send this to CSS rewrite function
@@ -118,10 +118,11 @@ func CSS(body io.ReadCloser) io.ReadCloser {
 			data := strings.Replace(string(token), "'", "", 1)
 			data = strings.Replace(string(data), "'", "", 1)
 
-			if strings.HasPrefix(data, "/") {
-				data = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.ProxyURL + data))
+			url, err := url.Parse(data)
+			if err != nil || url.Scheme == "" || url.Host == "" {
+				data = global.Scheme + "//" + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.URL + data))
 			} else if strings.HasPrefix(data, "https://") || strings.HasPrefix(data, "https://") {
-				data = global.Scheme + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(data))
+				data = global.Scheme + "//" + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(data))
 			}
 
 			out += data
@@ -131,7 +132,7 @@ func CSS(body io.ReadCloser) io.ReadCloser {
 		
 			url, err := url.Parse(data)
 			if err != nil || url.Scheme == "" || url.Host == "" {
-				data = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURL + data))
+				data = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.URL + data))
 			} else {
 				data = global.Scheme + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(data))
 			}
