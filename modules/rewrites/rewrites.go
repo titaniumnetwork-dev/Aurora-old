@@ -21,14 +21,11 @@ func Header(key string, val []string) []string {
 	// TODO: Continue adding more header rewrites
 	switch key {
 	case "Location":
-		// TODO: Change the global config of the status code once global config is added
 	case "Set-Cookie":
-		// TODO: Fix broken regex
-		re1 := regexp.MustCompile(`Domain=(.*?);`)
-		valStr = re1.ReplaceAllString(valStr, "Domain=" + global.URL + ";")
-		re2 := regexp.MustCompile(`Path=(.*?);`)
-		// TODO: This won't work when base64 is fully encoded maybe I can use a cookiejar and split the path in the future
-		valStr = re2.ReplaceAllString(valStr, "Path=" + global.Path + ";")
+		re1 := regexp.MustCompile(`domain=(.*?);`)
+		valStr = re1.ReplaceAllString(valStr, "domain=" + global.URL + ";")
+		re2 := regexp.MustCompile(`path=(.*?);`)
+		valStr = re2.ReplaceAllString(valStr, "path=" + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURL)) + "/" + ";")
 	}
 
 	val = strings.Split(valStr, "; ")
@@ -40,9 +37,11 @@ func elmAttr(key string, val string) string {
 	if key == "href" || key == "src" || key == "poster" || key == "data" || key == "action" || key == "srcset" || key == "data-src" || key == "data-href" {
 		attrURL, err := url.Parse(val)
 		if err != nil || attrURL.Scheme == "" || attrURL.Host == "" {
-			val = global.Scheme + "//" + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.ProxyURL + val[1:]))
+			if val != "" {
+				val = global.Scheme + "//" + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURL + val[1:]))
+ 			}
 		} else {
-			val = global.Scheme + "//" + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(val))
+			val = global.Scheme + "//" + global.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(val))
 		}
 	}
 	attr := " " + key + "=" + "\"" + val + "\""
@@ -73,12 +72,11 @@ func HTML(body io.ReadCloser) io.ReadCloser {
 		
 			out += "<" + token.Data + attr + ">"
 		
-			// TODO: Insert config.json into attribute like alloy
 			if token.Data == "head" {
 				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\"" + global.ProxyURL + "\"}")) + "\"></script>"
 			}
 			if token.Data == "style" {
-				// TODO: Send this to CSS rewrite function
+				// TODO: Send this to CSS rewrite function (Do what eli told me to do)
 			}
 		case html.EndTagToken:
 			out += "</" + token.Data + ">"
@@ -121,7 +119,7 @@ func CSS(body io.ReadCloser) io.ReadCloser {
 			url, err := url.Parse(data)
 			if err != nil || url.Scheme == "" || url.Host == "" {
 				data = global.Scheme + "//" + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(global.URL + data))
-			} else if strings.HasPrefix(data, "https://") || strings.HasPrefix(data, "https://") {
+			} else if strings.HasPrefix(data, "http://") || strings.HasPrefix(data, "https://") {
 				data = global.Scheme + "//" + global.Host + global.Prefix + base64.StdEncoding.EncodeToString([]byte(data))
 			}
 

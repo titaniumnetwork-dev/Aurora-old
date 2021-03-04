@@ -35,6 +35,13 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	global.Host = r.Host
 
+	// This kind of port checking should extend everywhere
+	if global.Port == ":80" || global.Port == ":443" {
+		global.URL = global.Scheme + "//" + global.Host + "/" 
+	} else {
+		global.URL = global.Scheme + "//" + global.Host + global.Port + "/" 
+	}
+
 	proxyURLB64 := r.URL.Path[len(global.Prefix):]
 	proxyURLBytes, err := base64.URLEncoding.DecodeString(proxyURLB64)
 	if err != nil {
@@ -80,7 +87,6 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(resp.StatusCode)
 
-	// TODO: Rewrite audio/video metadata for streams
 	contentType := resp.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "text/html") {
 		resp.Body = rewrites.HTML(resp.Body)
