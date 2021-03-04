@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/titaniumnetwork-dev/AuroraProxy/modules/global"
+	"github.com/titaniumnetwork-dev/AuroraProxy/modules/config"
 	"github.com/titaniumnetwork-dev/AuroraProxy/modules/proxy"
 	"log"
 	"net/http"
@@ -22,6 +22,7 @@ func main() {
 		if global.SSLCertExists && global.SSLKeyExists {
 			global.SSLCert, global.SSLCertExists = os.LookupEnv("CERT")
 			global.SSLKey, global.SSLKeyExists = os.LookupEnv("KEY")
+
 			err := http.ListenAndServeTLS(global.Port, global.SSLCert, global.SSLKey, nil)
 			if err != nil {
 				log.Fatal(err)

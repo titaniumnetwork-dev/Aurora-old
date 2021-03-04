@@ -1,10 +1,11 @@
 package global
 
-var Scheme string
-var Host string
-var Path string
-var URL string
+// TODO: Switch from environment variable to json
 
+var Cookie string
+var CookieExists bool
+
+var URL string
 var ProxyURL string
 
 var Prefix string
