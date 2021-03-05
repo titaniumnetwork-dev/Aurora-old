@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"errors"
 )
 
 // TODO: Write a proper header parser
@@ -42,10 +43,11 @@ func internalHTML(key string, val string) (string, error) {
 		} else {
 			val = global.URL.Scheme + "//" + global.URL.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(val))
 		}
+	}
 	if key == "style" {
 		val, err := CSS(val)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 	}
 	attr := " " + key + "=" + "\"" + val + "\""
@@ -83,11 +85,12 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 			tagnameBytes, _ := tokenizer.TagName()
 			tagname := string(tagnameBytes)
 			if tagname == "style" {
-				val, err := CSS(token.Data) 
+				valInterface, err := CSS(token.Data) 
+				val := valInterface.(string)
 				if err == nil {
 					token.Data = val
 				} else {
-					return err
+					return nil, err
 				}
 			}
 			out += token.Data
@@ -105,13 +108,6 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 
 			if token.Data == "head" {
 				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\"" + global.ProxyURL.String() + "\"}")) + "\"></script>"
-			}
-			if token.Data == "style" {
-				val, err := CSS(token.Text)
-				if err != nil {
-					return nil, err
-				}
-				out += "<style>" + val + "</script>"
 			}
 		case html.EndTagToken:
 			out += "</" + token.Data + ">"
@@ -139,14 +135,18 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 	return body, nil
 }
 
-func CSS(body interface{}) (interface{}, string) {
-	switch body.(type) {
+func CSS(bodyInterface interface{}) (interface{}, error) {
+	switch bodyInterface.(type) {
 	case io.ReadCloser:
+		body := bodyInterface.(io.ReadCloser)
 		tokenizer := css.NewLexer(parse.NewInput(body))
 	case string:
-		tokenizer := css.NewLexer(strings.NewReader(body))
-	case default:
-		return nil, errors.New("Invalid argument type passed to CSS function " + body)
+		body := bodyInterface.(string)
+		// There might be a more efficient method
+		tokenizer := css.NewLexer(parse.NewInput(strings.NewReader(body)))
+	default:
+		err := errors.New("Invalid argument type passed to CSS function")
+		return nil, err
 	}
 
 	out := ""
@@ -158,7 +158,12 @@ func CSS(body interface{}) (interface{}, string) {
 		if err == io.EOF {
 			break
 		} else {
-			return nil, err
+			switch bodyInterface.(type) {
+			case io.ReadCloser:
+				return nil, err
+			case string:
+				return "", err
+			}
 		}
 
 		switch tokenType {
@@ -170,7 +175,7 @@ func CSS(body interface{}) (interface{}, string) {
 			out += val
 		case css.URLToken:
 			val := strings.Replace(string(token), "url(", "", 4)
-			val = strings.Replace(string(data), ")", "", 1)
+			val = strings.Replace(string(val), ")", "", 1)
 			val = internalCSS(val)
 
 			out += "url(" + val + ")"
@@ -179,11 +184,13 @@ func CSS(body interface{}) (interface{}, string) {
 		}
 	}
 
-	if body.(type) == io.ReadCloser {
+	switch bodyInterface.(type) {
+	case io.ReadCloser:
+		body = bodyInterface.(io.ReadCloser)
 		body = ioutil.NopCloser(strings.NewReader(out))
 		body.Close()
 		return body, nil
-	} else if body.(type) == string {
+	case string:
 		return out, nil
 	}
 }

@@ -1,5 +1,5 @@
 # Aurora Proxy
-A fast and powerful proxy made in golang. This project is about to be in beta so don't expect much yet. Anything you see here is subject to change.
+A fast and powerful proxy made in go. This project is about to be in beta so don't expect much yet. Anything you see here is subject to change.
 
 # Documentation
 I will soon move documentation from this readme file to a github wiki page.
