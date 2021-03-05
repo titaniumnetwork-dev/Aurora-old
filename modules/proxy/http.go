@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
-	"url"
+	"net/url"
 )
 
 // Server used for proxy
@@ -44,7 +44,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		global.Scheme = "https:"
 	}
 
-	global.URL, err := url.Parse(req.URL.RequestURI())
+	global.URL, err = url.Parse(req.URL.RequestURI())
 	if err != nil {
 		log.Println(err)
 	}
@@ -93,9 +93,10 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
+	// This will go great with json config
 	blockedHeaders := [4]string{"Content-Security-Policy", "Content-Security-Policy-Report-Only", "Strict-Transport-Security", "X-Frame-Options"}
-	for i := 0; i < len(blockedHeaders); i++ {
-		delete(resp.Header, blockedHeaders[i])
+	for _, header := range blockedHeaders {
+		delete(resp.Header, header)
 	}
 	for key, val := range resp.Header {
 		val = rewrites.Header(key, val)

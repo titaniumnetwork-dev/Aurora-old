@@ -24,7 +24,7 @@ func Header(key string, val []string) []string {
 		re1 := regexp.MustCompile(`domain=(.*?);`)
 		valStr = re1.ReplaceAllString(valStr, "domain=" + global.URL.Hostname() + ";")
 		re2 := regexp.MustCompile(`path=(.*?);`)
-		valStr = re2.ReplaceAllString(valStr, "path=" + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURL)) + "/" + ";")
+		valStr = re2.ReplaceAllString(valStr, "path=" + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURL.String())) + "/" + ";")
 	}
 
 	val = strings.Split(valStr, "; ")
@@ -37,19 +37,19 @@ func internalHTML(key string, val string) (string, error) {
 		attrURL, err := url.Parse(val)
 		if err != nil || attrURL.Scheme == "" || attrURL.Host == "" {
 			if val != "" {
-				val = global.URL.Scheme + "//" + global.URL.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURL + val[1:]))
+				val = global.URL.Scheme + "//" + global.URL.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(global.ProxyURL.String() + val[1:]))
 			}
 		} else {
-			val = global.URL.Scheme + "//" + global.URL.Host + global.URL.Prefix + base64.URLEncoding.EncodeToString([]byte(val))
+			val = global.URL.Scheme + "//" + global.URL.Host + global.Prefix + base64.URLEncoding.EncodeToString([]byte(val))
 		}
-	} else if key == "style" {
+	if key == "style" {
 		val, err := CSS(val)
 		if err != nil {
-			return nil, error
+			return nil, err
 		}
 	}
 	attr := " " + key + "=" + "\"" + val + "\""
-	return attr
+	return attr, nil
 }
 
 func internalCSS(val string) string {
@@ -80,11 +80,22 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 
 		switch tokenType {
 		case html.TextToken:
+			tagnameBytes, _ := tokenizer.TagName()
+			tagname := string(tagnameBytes)
+			if tagname == "style" {
+				val, err := CSS(token.Data) 
+				if err == nil {
+					token.Data = val
+				} else {
+					return err
+				}
+			}
 			out += token.Data
 		case html.StartTagToken:
 			attr := ""
 			for _, elm := range token.Attr {
-				attr, err += internalHTML(elm.Key, elm.Val)
+				attrTemp, err := internalHTML(elm.Key, elm.Val)
+				attr += attrTemp
 				if err != nil {
 					return nil, err
 				}
@@ -93,10 +104,10 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 			out += "<" + token.Data + attr + ">"
 
 			if token.Data == "head" {
-				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\"" + global.ProxyURL + "\"}")) + "\"></script>"
+				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\"" + global.ProxyURL.String() + "\"}")) + "\"></script>"
 			}
 			if token.Data == "style" {
-				val, err := CSS(token.Text())
+				val, err := CSS(token.Text)
 				if err != nil {
 					return nil, err
 				}
@@ -107,8 +118,10 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 		case html.SelfClosingTagToken:
 			attr := ""
 			for _, elm := range token.Attr {
-				attr, err += internalHTML(elm.Key, elm.Val)
-				if err != nil {
+				attrTemp, err := internalHTML(elm.Key, elm.Val)
+				if err == nil {
+					attr += attrTemp
+				} else {
 					return nil, err
 				}
 			}
@@ -126,12 +139,13 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 	return body, nil
 }
 
-func CSS(body interface{}) (interface{}, error) {
-	if body.(type) == io.ReadCloser {
+func CSS(body interface{}) (interface{}, string) {
+	switch body.(type) {
+	case io.ReadCloser:
 		tokenizer := css.NewLexer(parse.NewInput(body))
-	} else if body.(type) == string {
+	case string:
 		tokenizer := css.NewLexer(strings.NewReader(body))
-	} else {
+	case default:
 		return nil, errors.New("Invalid argument type passed to CSS function " + body)
 	}
 
@@ -143,8 +157,8 @@ func CSS(body interface{}) (interface{}, error) {
 		err := tokenizer.Err()
 		if err == io.EOF {
 			break
-		} else if {
-			return err
+		} else {
+			return nil, err
 		}
 
 		switch tokenType {
