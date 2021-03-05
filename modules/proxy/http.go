@@ -1,48 +1,55 @@
 package proxy
 
 import (
-	"github.com/titaniumnetwork-dev/AuroraProxy/modules/global"
+	"github.com/titaniumnetwork-dev/AuroraProxy/modules/config"
 	"github.com/titaniumnetwork-dev/AuroraProxy/modules/rewrites"
 	"encoding/base64"
 	"fmt"
 	"io"
+	"os"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+	"url"
 )
 
 // Server used for proxy
 func Server(w http.ResponseWriter, r *http.Request) {
+	// This will go great with json config
 	blockedUserAgents := [0]string{}
 	for _, userAgent := range blockedUserAgents {
 		if userAgent == r.UserAgent() {
 			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprintf(w, "401 not allowed")
+			fmt.Fprintf(w, "401, not authorized")
 			return
 		}
 	}
 
-	// TODO: Add optional cookie whitelist that can be enabled in config
-	// Use cookiejar see http documentation
-	// This should stop site blockers
+	global.Cookie, global.CookieExists := os.LookupEnv("COOKIE")
+	global.Cookie = strings.Split(global.Cookie, "=")
+	if global.CookieExists && len(global.Cookie) == 2 {
+		cookie, err := http.Cookie(global.Cookie[0])
+		// Yeah this can't be cookie.name it has to be something different for value
+		if err != nil || cookie.name != global.Cookie[1] {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprintf(w, "401, not authorized")
+			return
+		}
+	}
 
-	if r.TLS != nil {
-		global.Scheme = "https:"
-	} else {
+	if r.TLS == nil {
 		global.Scheme = "http:"
-	}
-
-	global.Host = r.Host
-
-	// This kind of port checking should extend everywhere
-	if global.Port == ":80" || global.Port == ":443" {
-		global.URL = global.Scheme + "//" + global.Host + "/" 
 	} else {
-		global.URL = global.Scheme + "//" + global.Host + global.Port + "/" 
+		global.Scheme = "https:"
 	}
 
-	proxyURLB64 := r.URL.Path[len(global.Prefix):]
+	global.URL, err := url.Parse(req.URL.RequestURI())
+	if err != nil {
+		log.Println(err)
+	}
+
+	proxyURLB64 := global.URL.Path[len(global.Prefix):]
 	proxyURLBytes, err := base64.URLEncoding.DecodeString(proxyURLB64)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -50,7 +57,17 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	global.ProxyURL = string(proxyURLBytes)
+	global.ProxyURL = url.Parse(string(proxyURLBytes))
+
+	// This will go great with json config
+	blockedDomains := [0]string{}
+	for _, domain := range blockedDomains {
+		if domain == global.ProxyURL.Hostname() {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprintf(w, "401, this domain has been blocked")
+			return
+		}
+	}
 
 	// TODO: Add the option to cap file transfer size with environment variable
 	tr := &http.Transport{
@@ -60,7 +77,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	client := &http.Client{Transport: tr}
 
-	req, err := http.NewRequest("GET", global.ProxyURL, nil)
+	req, err := http.NewRequest("GET", global.ProxyURL.String(), nil)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "404, %s", err)
@@ -76,8 +93,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// TODO: Block more headers
-	blockedHeaders := [2]string{"Content-Security-Policy", "Strict-Transport-Security"}
+	blockedHeaders := [4]string{"Content-Security-Policy", "Content-Security-Policy-Report-Only", "Strict-Transport-Security", "X-Frame-Options"}
 	for i := 0; i < len(blockedHeaders); i++ {
 		delete(resp.Header, blockedHeaders[i])
 	}
@@ -89,10 +105,21 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	contentType := resp.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "text/html") {
-		resp.Body = rewrites.HTML(resp.Body)
+		resp.Body, err = rewrites.HTML(resp.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "500, %s", err)
+			log.Println(err)
+			return
+		}
 	}
 	if strings.HasPrefix(contentType, "text/css") {
-		resp.Body = rewrites.CSS(resp.Body)
+		resp.Body, err = rewrites.CSS(resp.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "500, %s", err)
+			log.Println(err)
+		}
 	}
 	// Currently low priority
 	/*
