@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	config.Init()
+
 	global.Prefix, global.PrefixExists = os.LookupEnv("PREFIX")
 	if global.PrefixExists {
 		http.HandleFunc(global.Prefix, proxy.Server)

@@ -26,6 +26,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// This is a big mess lol
 	global.Cookie, global.CookieExists := os.LookupEnv("COOKIE")
 	global.Cookie = strings.Split(global.Cookie, "=")
 	if global.CookieExists && len(global.Cookie) == 2 {
@@ -60,7 +61,6 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	global.ProxyURL = url.Parse(string(proxyURLBytes))
 
 	// This will go great with json config
-	blockedDomains := [0]string{}
 	for _, domain := range blockedDomains {
 		if domain == global.ProxyURL.Hostname() {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -93,8 +93,8 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// This will go great with json config
 	blockedHeaders := [4]string{"Content-Security-Policy", "Content-Security-Policy-Report-Only", "Strict-Transport-Security", "X-Frame-Options"}
+	// for_, header := range config.Get["blockedHeaders"] {...}
 	for _, header := range blockedHeaders {
 		delete(resp.Header, header)
 	}
