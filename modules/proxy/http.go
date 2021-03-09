@@ -1,8 +1,8 @@
-package proxy
+package http
 
 import (
-	"github.com/titaniumnetwork-dev/AuroraProxy/modules/config"
-	"github.com/titaniumnetwork-dev/AuroraProxy/modules/rewrites"
+	"github.com/titaniumnetwork-dev/Aurora/modules/config"
+	"github.com/titaniumnetwork-dev/Aurora/modules/rewrites"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -26,30 +26,18 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	global.Cookie, global.CookieExists := os.LookupEnv("COOKIE")
-	global.Cookie = strings.Split(global.Cookie, "=")
-	if global.CookieExists && len(global.Cookie) == 2 {
-		cookie, err := http.Cookie(global.Cookie[0])
-		// Yeah this can't be cookie.name it has to be something different for value
-		if err != nil || cookie.name != global.Cookie[1] {
-			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprintf(w, "401, not authorized")
-			return
-		}
-	}
-
 	if r.TLS == nil {
-		global.Scheme = "http:"
+		config.Scheme = "http"
 	} else {
-		global.Scheme = "https:"
+		config.Scheme = "https"
 	}
 
-	global.URL, err = url.Parse(req.URL.RequestURI())
+	config.URL, err = url.Parse(req.URL.RequestURI())
 	if err != nil {
 		log.Println(err)
 	}
 
-	proxyURLB64 := global.URL.Path[len(global.Prefix):]
+	proxyURLB64 := config.URL.Path[len(config.Prefix):]
 	proxyURLBytes, err := base64.URLEncoding.DecodeString(proxyURLB64)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -57,12 +45,11 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	global.ProxyURL = url.Parse(string(proxyURLBytes))
+	config.ProxyURL = url.Parse(string(proxyURLBytes))
 
-	// This will go great with json config
 	blockedDomains := [0]string{}
 	for _, domain := range blockedDomains {
-		if domain == global.ProxyURL.Hostname() {
+		if domain == config.ProxyURL.Hostname() {
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprintf(w, "401, this domain has been blocked")
 			return
@@ -70,14 +57,13 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Add the option to cap file transfer size with environment variable
-	tr := &http.Transport{
-		MaxIdleConns:    10,
+	tr := &http.Transport {
 		IdleConnTimeout: 10 * time.Second,
 	}
 
 	client := &http.Client{Transport: tr}
 
-	req, err := http.NewRequest("GET", global.ProxyURL.String(), nil)
+	req, err := http.NewRequest("GET", config.ProxyURL.String(), nil)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "404, %s", err)
@@ -93,7 +79,6 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// This will go great with json config
 	blockedHeaders := [4]string{"Content-Security-Policy", "Content-Security-Policy-Report-Only", "Strict-Transport-Security", "X-Frame-Options"}
 	for _, header := range blockedHeaders {
 		delete(resp.Header, header)

@@ -6,7 +6,7 @@ const rewrites = {url: url => (url = new URL(url) ? config.url + btoa(url) : con
 let document = new Proxy(document, {
 	get: (target, prop) => {
 		switch (prop) {
-		case: 'location':
+		case 'location':
 			return rewrites.url(prop);
 		default:
 			Reflect.get(target, prop);
@@ -17,9 +17,9 @@ let document = new Proxy(document, {
 let window = new Proxy(document, {
 	get: (target, prop) => {
 		switch (prop) {
-		case: 'document':
+		case 'document':
 			return document;
-		case: 'window':
+		case 'window':
 			return window;
 		default:
 			Reflect.get(target, prop);
@@ -33,8 +33,6 @@ document.prototype.write = new Proxy(document.prototype.write, {
         // TODO: Rewrite and send back data
     }
 });
-
-*/
 
 const historyHandler = {
     apply: (target, thisArg, args) => {

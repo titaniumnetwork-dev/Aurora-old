@@ -1,34 +1,38 @@
 package main
 
 import (
-	"github.com/titaniumnetwork-dev/AuroraProxy/modules/config"
-	"github.com/titaniumnetwork-dev/AuroraProxy/modules/proxy"
+	"github.com/titaniumnetwork-dev/Aurora/modules/config"
+	"github.com/titaniumnetwork-dev/Aurora/modules/proxy"
 	"log"
 	"net/http"
 	"os"
 )
 
 func main() {
-	global.Prefix, global.PrefixExists = os.LookupEnv("PREFIX")
-	if global.PrefixExists {
-		http.HandleFunc(global.Prefix, proxy.Server)
-		http.Handle("/", http.FileServer(http.Dir("./static")))
+	config.HTTPPrefix, config.HTTPPrefixExists = os.LookupEnv("HTTPPREFIX")
+	config.WSPrefix, config.WSPrefixExists = os.LookupEnv("WSPREFIX")
+	if !config.HTTPPrefixExists {
+		log.Fatal("You need to specify an http prefix")
+	} else if !config WSPrefixExists {
+		log.Fatal("You need to specify an ws prefix")
 	} else {
-		log.Fatal("You need to specify a prefix")
+		http.HandleFunc(config.HTTPPrefix, http.Server)
+		http.HandleFunc(config.WSPrefix, ws.Server)
+		http.Handle("/", http.FileServer(http.Dir("./static")))
 	}
 
-	global.Port, global.PortExists = os.LookupEnv("PORT")
-	if global.PortExists {
-		if global.SSLCertExists && global.SSLKeyExists {
-			global.SSLCert, global.SSLCertExists = os.LookupEnv("CERT")
-			global.SSLKey, global.SSLKeyExists = os.LookupEnv("KEY")
+	config.Port, config.PortExists = os.LookupEnv("PORT")
+	if config.PortExists {
+		if config.SSLCertExists && config.SSLKeyExists {
+			config.SSLCert, config.SSLCertExists = os.LookupEnv("CERT")
+			config.SSLKey, config.SSLKeyExists = os.LookupEnv("KEY")
 
-			err := http.ListenAndServeTLS(global.Port, global.SSLCert, global.SSLKey, nil)
+			err := http.ListenAndServeTLS(config.Port, config.SSLCert, config.SSLKey, nil)
 			if err != nil {
 				log.Fatal(err)
 			}
 		} else {
-			err := http.ListenAndServe(global.Port, nil)
+			err := http.ListenAndServe(config.Port, nil)
 			if err != nil {
 				log.Fatal(err)
 			}

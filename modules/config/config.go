@@ -1,25 +1,8 @@
-package global
+package config
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"log"
 	"net/url"
 )
-
-// TODO: Switch from environment variable to json
-
-val, err := ioutil.ReadFile("../../config.json")
-if err != nil {
-	log.Fatal(err)
-}
-
-err := json.Unmarshal(val) 
-if err != nil {
-	log.Fatal(err)
-}
-
-// Old Code - Ignore for now
 
 var Cookie string
 var CookieExists bool
