@@ -29,7 +29,7 @@ let window = new Proxy(document, {
 
 document.prototype.write = new Proxy(document.prototype.write, {
     apply: (target, thisArg, args) => {
-        var doc = domparser.parseFromString(args[0], 'text/html');
+        var doc = domparser.parseFromString(args[0], 'text/html'); 
         // TODO: Rewrite and send back data
     }
 });
