@@ -13,7 +13,7 @@ var ProxyURL url.URL
 var HTTPPrefix string
 var HTTPPrefixExists bool
 var WSPrefix string
-var WSPREFIXExists bool
+var WSPrefixExists bool
 var Port string
 var PortExists bool
 var SSLCert string
