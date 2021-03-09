@@ -7,8 +7,9 @@ import (
 var Cookie string
 var CookieExists bool
 
-var URL url.URL
-var ProxyURL url.URL
+var Scheme string
+var URL *url.URL
+var ProxyURL *url.URL
 
 var HTTPPrefix string
 var HTTPPrefixExists bool

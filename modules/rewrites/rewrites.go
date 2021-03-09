@@ -1,20 +1,22 @@
 package rewrites
 
 import (
-	"github.com/titaniumnetwork-dev/Aurora/modules/config"
-	"golang.org/x/net/html"
 	"github.com/tdewolff/parse/v2"
 	"github.com/tdewolff/parse/v2/css"
+	"github.com/titaniumnetwork-dev/Aurora/modules/config"
+	"golang.org/x/net/html"
 	//	"encoding/xml"
+	"encoding/base64"
+	"errors"
 	"io"
 	"io/ioutil"
-	"encoding/base64"
+	"log"
 	"net/url"
 	"regexp"
 	"strings"
-	"errors"
-	"log"
 )
+
+var err error
 
 // TODO: Write a proper header parser
 func Header(key string, valArr []string) []string {
@@ -24,9 +26,9 @@ func Header(key string, valArr []string) []string {
 	switch key {
 	case "Set-Cookie":
 		re1 := regexp.MustCompile(`domain=(.*?);`)
-		val = re1.ReplaceAllString(val, "domain=" + config.URL.Hostname() + ";")
+		val = re1.ReplaceAllString(val, "domain="+config.URL.Hostname()+";")
 		re2 := regexp.MustCompile(`path=(.*?);`)
-		val = re2.ReplaceAllString(val, "path=" + config.Prefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String())) + "/" + ";")
+		val = re2.ReplaceAllString(val, "path="+config.HTTPPrefix+base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()))+"/"+";")
 	}
 
 	valArr = strings.Split(val, "; ")
@@ -39,20 +41,21 @@ func internalHTML(key string, val string) (string, error) {
 		url, err := url.Parse(val)
 		if err != nil || url.Scheme == "" || url.Host == "" {
 			if val != "" {
-				val = config.URL.Scheme + "://" + config.URL.Host + config.Prefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String() + val[1:]))
+				val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()+val[1:]))
 			} else {
 				err = errors.New("No value in attribute" + key + "set")
 				return "", nil
 			}
 		} else {
-			val = config.URL.Scheme + "://" + config.URL.Host + config.Prefix + base64.URLEncoding.EncodeToString([]byte(val))
+			val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(val))
 		}
 	}
 	if key == "style" {
-		val, err := CSS(val)
+		valInterface, err := CSS(val)
 		if err != nil {
 			return "", err
 		}
+		val = valInterface.(string)
 	}
 	attr := " " + key + "=" + "\"" + val + "\""
 	return attr, nil
@@ -61,9 +64,9 @@ func internalHTML(key string, val string) (string, error) {
 func internalCSS(val string) string {
 	url, err := url.Parse(val)
 	if err != nil || url.Scheme == "" || url.Host == "" {
-		val = config.URL.Scheme + "://" + config.URL.Host + config.Prefix + base64.URLEncoding.EncodeToString([]byte(config.URL.String() + val))
+		val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.URL.String()+val))
 	} else {
-		val = config.URL.Scheme + "://" + config.URL.Host + config.Prefix + base64.URLEncoding.EncodeToString([]byte(val))
+		val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(val))
 	}
 
 	return val
@@ -109,10 +112,8 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 			out += "<" + token.Data + attr + ">"
 
 			if token.Data == "head" {
-				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\"" + config.ProxyURL.String() + "\"}")) + "\"></script>"
+				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\""+config.ProxyURL.String()+"\"}")) + "\"></script>"
 			}
-		case html.EndTagToken:
-			out += token.String()
 		case html.SelfClosingTagToken:
 			attr := ""
 			for _, elm := range token.Attr {
@@ -125,9 +126,7 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 			}
 
 			out += "<" + token.Data + attr + "/>"
-		case html.CommentToken:
-			out += token.String()
-		case html.DoctypeToken:
+		default:
 			out += token.String()
 		}
 	}
@@ -138,16 +137,16 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 }
 
 func CSS(bodyInterface interface{}) (interface{}, error) {
-	var tokenizer css.Lexer
+	var tokenizer *css.Lexer
 	switch bodyInterface.(type) {
 	case io.ReadCloser:
 		body := bodyInterface.(io.ReadCloser)
-		tokenizer := css.NewLexer(parse.NewInput(body))
+		tokenizer = css.NewLexer(parse.NewInput(body))
 	case string:
 		body := bodyInterface.(string)
-		tokenizer := css.NewLexer(parse.NewInput(strings.NewReader(body)))
+		tokenizer = css.NewLexer(parse.NewInput(strings.NewReader(body)))
 	default:
-		err := errors.New("Invalid argument type passed")
+		err = errors.New("Invalid argument type passed")
 		return nil, err
 	}
 
@@ -156,7 +155,7 @@ func CSS(bodyInterface interface{}) (interface{}, error) {
 	for {
 		tokenType, token := tokenizer.Next()
 
-		err := tokenizer.Err()
+		err = tokenizer.Err()
 		if err == io.EOF {
 			break
 		} else if err != nil {

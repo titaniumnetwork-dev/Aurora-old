@@ -1,21 +1,22 @@
-package http
+package proxy
 
 import (
-	"github.com/titaniumnetwork-dev/Aurora/modules/config"
-	"github.com/titaniumnetwork-dev/Aurora/modules/rewrites"
 	"encoding/base64"
 	"fmt"
+	"github.com/titaniumnetwork-dev/Aurora/modules/config"
+	"github.com/titaniumnetwork-dev/Aurora/modules/rewrites"
 	"io"
-	"os"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
-	"net/url"
 )
 
+var err error
+
 // Server used for proxy
-func Server(w http.ResponseWriter, r *http.Request) {
+func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	// This will go great with json config
 	blockedUserAgents := [0]string{}
 	for _, userAgent := range blockedUserAgents {
@@ -32,12 +33,12 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		config.Scheme = "https"
 	}
 
-	config.URL, err = url.Parse(req.URL.RequestURI())
+	config.URL, err = url.Parse(r.URL.RequestURI())
 	if err != nil {
 		log.Println(err)
 	}
 
-	proxyURLB64 := config.URL.Path[len(config.Prefix):]
+	proxyURLB64 := config.URL.Path[len(config.HTTPPrefix):]
 	proxyURLBytes, err := base64.URLEncoding.DecodeString(proxyURLB64)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -45,7 +46,13 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	config.ProxyURL = url.Parse(string(proxyURLBytes))
+	config.ProxyURL, err = url.Parse(string(proxyURLBytes))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "500, %s", err)
+		log.Println(err)
+		return
+	}
 
 	blockedDomains := [0]string{}
 	for _, domain := range blockedDomains {
@@ -57,7 +64,7 @@ func Server(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: Add the option to cap file transfer size with environment variable
-	tr := &http.Transport {
+	tr := &http.Transport{
 		IdleConnTimeout: 10 * time.Second,
 	}
 
@@ -100,12 +107,14 @@ func Server(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if strings.HasPrefix(contentType, "text/css") {
-		resp.Body, err = rewrites.CSS(resp.Body)
+		respBodyInterface, err := rewrites.CSS(resp.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500, %s", err)
 			log.Println(err)
+			return
 		}
+		resp.Body = respBodyInterface.(io.ReadCloser)
 	}
 	// Currently low priority
 	/*
