@@ -1,40 +1,20 @@
-package Config
+package config
 
 import (
-	"io/ioutil"
-	"log"
 	"net/url"
 )
 
-// Types are ignored when mapping to interface
+var Cookie string
+var CookieExists bool
 
-// See if it is possible to make this is a singleton
-func Init() {
-	val, err := ioutil.ReadFile("./config.json")
-	if err != nil {
-		log.Fatal(err)
-	}
+var URL url.URL
+var ProxyURL url.URL
 
-	var config map[string]interface{}
-
-	json.Unmarshal(val, &config)
-
-	// TODO: Adapt this
-	if config["port"] {
-		log.Fatal("You need to specify a port")
-	} else if config["prefix"] {
-		log.Fatal("You need to specify a prefix")
-	}
-}
-
-func Get(val string) string  {
-	val := config[val]
-
-	return val, nil
-}
-
-func Set(val string) string {
-	config[val] = val
-
-	return val, nil
-}
+var Prefix string
+var PrefixExists bool
+var Port string
+var PortExists bool
+var SSLCert string
+var SSLCertExists bool
+var SSLKey string
+var SSLKeyExists bool
