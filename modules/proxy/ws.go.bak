@@ -1,0 +1,12 @@
+package proxy
+
+import (
+	// "github.com/gobwas/ws"
+	// "github.com/titaniumnetwork-dev/Aurora/modules/config"
+	"net/http"
+)
+
+// HTTP Server used to forward websocket connection
+func WSServer(w http.ResponseWriter, r *http.Request) {
+	// TODO: Redirect to websocket server and proxify connections
+}
