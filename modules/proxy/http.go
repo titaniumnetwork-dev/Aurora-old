@@ -107,14 +107,16 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if strings.HasPrefix(contentType, "text/css") {
-		respBodyInterface, err := rewrites.CSS(resp.Body)
+		resp.Body, err = rewrites.CSS(resp.Body)
+		if resp.Body == nil {
+			fmt.Println("Response body is nil!")
+		}
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500, %s", err)
 			log.Println(err)
 			return
 		}
-		resp.Body = respBodyInterface.(io.ReadCloser)
 	}
 	// Currently low priority
 	/*
