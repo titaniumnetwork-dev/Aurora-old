@@ -26,9 +26,9 @@ func Header(key string, valArr []string) []string {
 	switch key {
 	case "Set-Cookie":
 		re1 := regexp.MustCompile(`domain=(.*?);`)
-		val = re1.ReplaceAllString(val, "domain="+config.URL.Hostname()+";")
+		val = re1.ReplaceAllString(val, "domain="+ config.URL.Hostname() + ";")
 		re2 := regexp.MustCompile(`path=(.*?);`)
-		val = re2.ReplaceAllString(val, "path="+config.HTTPPrefix+base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()))+"/"+";")
+		val = re2.ReplaceAllString(val, "path=" + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String())) + ";")
 	}
 
 	valArr = strings.Split(val, "; ")
@@ -40,12 +40,20 @@ func internalHTML(key string, val string) (string, error) {
 	if key == "href" || key == "src" || key == "poster" || key == "data" || key == "action" || key == "srcset" || key == "data-src" || key == "data-href" {
 		url, err := url.Parse(val)
 		if err != nil || url.Scheme == "" || url.Host == "" {
-			if val != "" {
-				val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()+val[1:]))
-			} else {
+			if strings.HasPrefix(val, "/") {
+				val = val[1:]
+			}
+			if val == "" {
 				err = errors.New("No value in attribute" + key + "set")
 				return "", nil
-			}
+			} else {
+				// This is really a mess
+				if url.RawQuery == "" {
+					val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.Scheme + "://" + config.ProxyURL.Host + config.ProxyURL.Path + val + config.ProxyURL.Fragment))
+				} else {
+					val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.Scheme + "://" + config.ProxyURL.Host + config.ProxyURL.Path + val + "?" + config.ProxyURL.RawQuery + config.ProxyURL.Fragment))
+				}
+			} 
 		} else {
 			val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(val))
 		}
@@ -64,7 +72,7 @@ func internalHTML(key string, val string) (string, error) {
 func internalCSS(val string) string {
 	url, err := url.Parse(val)
 	if err != nil || url.Scheme == "" || url.Host == "" {
-		val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.URL.String()+val))
+		val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.URL.String() + val))
 	} else {
 		val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(val))
 	}
@@ -83,13 +91,13 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 		err := tokenizer.Err()
 		if err == io.EOF {
 			break
-		} else {
-			return nil, nil
+		} else if err != nil {
+			return nil, err
 		}
 
 		switch tokenType {
 		case html.TextToken:
-			if string(tokenizer.Text()) == "style" {
+			if string(tokenizer.Text()) == "style" {	
 				valInterface, err := CSS(token.Data)
 				if err != nil {
 					return nil, err
@@ -112,7 +120,7 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 			out += "<" + token.Data + attr + ">"
 
 			if token.Data == "head" {
-				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\""+config.ProxyURL.String()+"\"}")) + "\"></script>"
+				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\"" + config.ProxyURL.String() + "\"}")) + "\"></script>"
 			}
 		case html.SelfClosingTagToken:
 			attr := ""
@@ -120,7 +128,7 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 				attrSel, err := internalHTML(elm.Key, elm.Val)
 				if err == nil {
 					attr += attrSel
-				} else {
+				} else if err != nil {
 					return nil, err
 				}
 			}
@@ -169,12 +177,6 @@ func CSS(bodyInterface interface{}) (interface{}, error) {
 
 		tokenStr := string(token)
 		switch tokenType {
-		case css.AtKeywordToken:
-			val := strings.Replace(tokenStr, "'", "", 1)
-			val = strings.Replace(val, "'", "", 1)
-			val = internalCSS(val)
-
-			out += val
 		case css.URLToken:
 			val := strings.Replace(tokenStr, "url(", "", 4)
 			val = strings.Replace(val, ")", "", 1)

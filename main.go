@@ -27,9 +27,11 @@ func main() {
 
 	config.Port, config.PortExists = os.LookupEnv("PORT")
 	if config.PortExists {
+		config.SSLCert, config.SSLCertExists = os.LookupEnv("CERT")
+		config.SSLKey, config.SSLKeyExists = os.LookupEnv("KEY")
+
 		if config.SSLCertExists && config.SSLKeyExists {
-			config.SSLCert, config.SSLCertExists = os.LookupEnv("CERT")
-			config.SSLKey, config.SSLKeyExists = os.LookupEnv("KEY")
+			log.Println("SSL EXISTS")
 
 			err = http.ListenAndServeTLS(config.Port, config.SSLCert, config.SSLKey, nil)
 			if err != nil {

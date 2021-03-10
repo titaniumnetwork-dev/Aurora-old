@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"errors"
 )
 
 var err error
@@ -33,9 +34,11 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		config.Scheme = "https"
 	}
 
-	config.URL, err = url.Parse(r.URL.RequestURI())
-	if err != nil {
-		log.Println(err)
+	config.URL, err = url.Parse(config.Scheme + "://" + r.Host + r.RequestURI)
+	if err != nil || config.URL.Scheme == "" || config.URL.Host == "" {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "500, %s", errors.New("Unable to parse url"))
+		return
 	}
 
 	proxyURLB64 := config.URL.Path[len(config.HTTPPrefix):]
@@ -43,14 +46,15 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "500, %s", err)
-		log.Println(err)
 		return
 	}
 	config.ProxyURL, err = url.Parse(string(proxyURLBytes))
-	if err != nil {
+	if err != nil || config.ProxyURL.Scheme == "" || config.ProxyURL.Host == "" {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "500, %s", err)
-		log.Println(err)
+		fmt.Fprintf(w, "500, %s", errors.New("Unable to parse url"))
+		if err != nil {
+			log.Fatal(err)
+		}
 		return
 	}
 
@@ -107,14 +111,14 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if strings.HasPrefix(contentType, "text/css") {
-		respBodyInterface, err := rewrites.CSS(resp.Body)
+		respBodyTMP, err := rewrites.CSS(resp.Body)
+		resp.Body = respBodyTMP.(io.ReadCloser)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500, %s", err)
 			log.Println(err)
 			return
 		}
-		resp.Body = respBodyInterface.(io.ReadCloser)
 	}
 	// Currently low priority
 	/*
