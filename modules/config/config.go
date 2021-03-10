@@ -4,20 +4,31 @@ import (
 	"net/url"
 )
 
-var Cookie string
-var CookieExists bool
+var (
+	BlockedDomains    = [0]string{}
+	BlockedHeaders    = [4]string{"Content-Security-Policy", "Content-Security-Policy-Report-Only", "Strict-Transport-Security", "X-Frame-Options"}
+	BlockedUserAgents = [0]string{}
 
-var Scheme string
-var URL *url.URL
-var ProxyURL *url.URL
+	HTTPScheme       string
+	HTTPURL          *url.URL
+	HTTPProxyURL     *url.URL
+	HTTPPrefix       string
+	HTTPPrefixExists bool
+	WSScheme         string
+	WSURL            *url.URL
+	WSProxyUrl       *url.URL
+	WSPrefix         string
+	WSPrefixExists   bool
 
-var HTTPPrefix string
-var HTTPPrefixExists bool
-var WSPrefix string
-var WSPrefixExists bool
-var Port string
-var PortExists bool
-var SSLCert string
-var SSLCertExists bool
-var SSLKey string
-var SSLKeyExists bool
+	/*
+	   var WRTCPrefixExists bool
+	   var WRTCPrefix String
+	*/
+
+	Port          string
+	PortExists    bool
+	SSLCert       string
+	SSLCertExists bool
+	SSLKey        string
+	SSLKeyExists  bool
+)

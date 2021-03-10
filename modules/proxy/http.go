@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/titaniumnetwork-dev/Aurora/modules/config"
 	"github.com/titaniumnetwork-dev/Aurora/modules/rewrites"
@@ -11,16 +12,13 @@ import (
 	"net/url"
 	"strings"
 	"time"
-	"errors"
 )
 
-var err error
-
-// Server used for proxy
+// Server used for http proxy
 func HTTPServer(w http.ResponseWriter, r *http.Request) {
-	// This will go great with json config
-	blockedUserAgents := [0]string{}
-	for _, userAgent := range blockedUserAgents {
+	var err error
+
+	for _, userAgent := range config.BlockedUserAgents {
 		if userAgent == r.UserAgent() {
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprintf(w, "401, not authorized")
@@ -29,37 +27,34 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.TLS == nil {
-		config.Scheme = "http"
+		config.HTTPScheme = "http"
 	} else {
-		config.Scheme = "https"
+		config.HTTPScheme = "https"
 	}
 
-	config.URL, err = url.Parse(config.Scheme + "://" + r.Host + r.RequestURI)
-	if err != nil || config.URL.Scheme == "" || config.URL.Host == "" {
+	config.HTTPURL, err = url.Parse(config.HTTPScheme + "://" + r.Host + r.RequestURI)
+	if err != nil || config.HTTPURL.Scheme == "" || config.HTTPURL.Host == "" {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "500, %s", errors.New("Unable to parse url"))
 		return
 	}
 
-	proxyURLB64 := config.URL.Path[len(config.HTTPPrefix):]
+	proxyURLB64 := config.HTTPURL.Path[len(config.HTTPPrefix):]
 	proxyURLBytes, err := base64.URLEncoding.DecodeString(proxyURLB64)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "500, %s", err)
 		return
 	}
+
 	config.ProxyURL, err = url.Parse(string(proxyURLBytes))
-	if err != nil || config.ProxyURL.Scheme == "" || config.ProxyURL.Host == "" {
+	if err != nil || config.HTTPProxyURL.Scheme == "" || config.HTTPProxyURL.Host == "" {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "500, %s", errors.New("Unable to parse url"))
-		if err != nil {
-			log.Fatal(err)
-		}
 		return
 	}
 
-	blockedDomains := [0]string{}
-	for _, domain := range blockedDomains {
+	for _, domain := range config.BlockedDomains {
 		if domain == config.ProxyURL.Hostname() {
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprintf(w, "401, this domain has been blocked")
@@ -74,7 +69,7 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 
 	client := &http.Client{Transport: tr}
 
-	req, err := http.NewRequest("GET", config.ProxyURL.String(), nil)
+	req, err := http.NewRequest("GET", config.HTTPProxyURL.String(), nil)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "404, %s", err)
@@ -90,8 +85,7 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	blockedHeaders := [4]string{"Content-Security-Policy", "Content-Security-Policy-Report-Only", "Strict-Transport-Security", "X-Frame-Options"}
-	for _, header := range blockedHeaders {
+	for _, header := range config.BlockedHeaders {
 		delete(resp.Header, header)
 	}
 	for key, val := range resp.Header {
@@ -111,8 +105,8 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if strings.HasPrefix(contentType, "text/css") {
-		respBodyTMP, err := rewrites.CSS(resp.Body)
-		resp.Body = respBodyTMP.(io.ReadCloser)
+		respBodyInterface, err := rewrites.CSS(resp.Body)
+		resp.Body = respBodyInterface.(io.ReadCloser)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500, %s", err)
