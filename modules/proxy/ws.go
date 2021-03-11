@@ -11,7 +11,8 @@ import (
 
 // Server used for ws proxy
 // Even after this is done there are a lot of improvements to be made
-// Actually send websocket error however that works
+// Do not use pre-forwarding blocking or get information at that time
+// TODO: Send websocket error however that works
 func WSServer(w http.ResponseWriter, r *http.Request) {
 	conn, _, _, err := ws.UpgradeHTTP(r, w)
 	if err != nil {
@@ -28,7 +29,8 @@ func WSServer(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			clientConn, _, _, err := ws.DefaultDialer.Dial(ctx, config.WSProxyURL.String())
+			// TODO: STtore something in proxy proxyurl variable
+			clientConn, _, _, err := ws.DefaultDialer.Dial(ctx, config.ProxyURL.String())
 			if err != nil {
 				log.Println(err)
 				return

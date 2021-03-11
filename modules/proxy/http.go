@@ -32,14 +32,14 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		config.HTTPScheme = "https"
 	}
 
-	config.HTTPURL, err = url.Parse(config.HTTPScheme + "://" + r.Host + r.RequestURI)
-	if err != nil || config.HTTPURL.Scheme == "" || config.HTTPURL.Host == "" {
+	config.URL, err = url.Parse(config.Scheme + "://" + r.Host + r.RequestURI)
+	if err != nil || config.URL.Scheme == "" || config.URL.Host == "" {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "500, %s", errors.New("Unable to parse url"))
 		return
 	}
 
-	proxyURLB64 := config.HTTPURL.Path[len(config.HTTPPrefix):]
+	proxyURLB64 := config.URL.Path[len(config.HTTPPrefix):]
 	proxyURLBytes, err := base64.URLEncoding.DecodeString(proxyURLB64)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -48,7 +48,7 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	config.ProxyURL, err = url.Parse(string(proxyURLBytes))
-	if err != nil || config.HTTPProxyURL.Scheme == "" || config.HTTPProxyURL.Host == "" {
+	if err != nil || config.ProxyURL.Scheme == "" || config.ProxyURL.Host == "" {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "500, %s", errors.New("Unable to parse url"))
 		return
@@ -69,7 +69,7 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 
 	client := &http.Client{Transport: tr}
 
-	req, err := http.NewRequest("GET", config.HTTPProxyURL.String(), nil)
+	req, err := http.NewRequest("GET", config.ProxyURL.String(), nil)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "404, %s", err)

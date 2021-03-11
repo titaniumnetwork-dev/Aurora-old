@@ -9,14 +9,12 @@ var (
 	BlockedHeaders    = [4]string{"Content-Security-Policy", "Content-Security-Policy-Report-Only", "Strict-Transport-Security", "X-Frame-Options"}
 	BlockedUserAgents = [0]string{}
 
-	HTTPScheme       string
-	HTTPURL          *url.URL
-	HTTPProxyURL     *url.URL
+	Scheme   string
+	URL      *url.URL
+	ProxyURL *url.URL
+
 	HTTPPrefix       string
 	HTTPPrefixExists bool
-	WSScheme         string
-	WSURL            *url.URL
-	WSProxyUrl       *url.URL
 	WSPrefix         string
 	WSPrefixExists   bool
 
