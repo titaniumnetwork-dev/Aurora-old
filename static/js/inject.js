@@ -1,9 +1,36 @@
+// TODO: Remove space indent
+
 const config = JSON.parse(atob(document.currentScript.getAttribute('data-config')));
 config.url = new URL(config.url);
 
-const rewrites = {url: url => (url = new URL(url) ? config.url + btoa(url) : config.url + btoa(atob(window.location.href) + url))};
+// TODO: Rewrite html and css
+const rewrites = {
+	// TODO: Escape path and fragment
+	url: url => url = new URL(url) ? config.url + btoa(url) : config.url + btoa(atob(window.location.href) + url),
+	html: html => {
+		// TODO: Avoid selecting id
+		var dom = DOMParser().parseFromString(html), sel = dom.querySelector('domsel');
 
-let document = new Proxy(document, {
+		sel.InnerHtml = html;
+
+		sel.querySelectorAll('*').forEach(node => {
+		switch(node.tagName) {
+			case 'STYLE':
+				node.textContent = rewrites.css(node.textContent)
+				break;
+			}
+		});
+
+		node.getAttributeNames().forEach(attr => {
+			// Rewrite attrs
+		})
+	},
+	css: css => {
+		//TODO: Rewrite css
+	}
+};
+
+document = new Proxy(document, {
 	get: (target, prop) => {
 		switch (prop) {
 		case 'location':
@@ -28,17 +55,17 @@ let window = new Proxy(document, {
 });
 
 document.prototype.write = new Proxy(document.prototype.write, {
-    apply: (target, thisArg, args) => {
-        var doc = domparser.parseFromString(args[0], 'text/html'); 
-        // TODO: Rewrite and send back data
+	apply: (target, thisArg, args) => {
+        html = rewrites.html(args[0])
+		// TODO: Rewrite and send back data
     }
 });
 
 const historyHandler = {
-    apply: (target, thisArg, args) => {
-        args[2] = rewrites.url();
-        return Reflect.apply(target, thisArg, args);
-    }
+	apply: (target, thisArg, args) => {
+		args[2] = rewrites.url();
+		return Reflect.apply(target, thisArg, args);
+	}
 };
 
 window.History.prototype.pushState = new Proxy(window.History.prototype.pushState, historyHandler);
@@ -46,30 +73,33 @@ window.History.prototype.replaceState = new Proxy(window.History.prototype.repla
 
 window.open = new Proxy(window.open, {
     apply: (target, thisArg, args) => {
-        args[0] = rewrites.url();
-        return Reflect.apply(target, thisArg, args);
+		args[0] = rewrites.url();
+		return Reflect.apply(target, thisArg, args);
     }
 });
 
 window.Navigator.prototype.sendBeacon = new Proxy(window.Navigator.prototype.sendBeacon, {
     apply: (target, thisArg, args) => {
-        args[0] = rewrites.url(args[0]);
-        return Reflect.apply(target, thisArg, args);
+		args[0] = rewrites.url(args[0]);
+		return Reflect.apply(target, thisArg, args);
     }
 });
 
 /*
 window.Websocket = new Proxy(window.Websocket, {
     construct: (target, args) => {
-        // TODO: rewrite
-        Reflect.construct(target, args)
+		// TODO: rewrite
+		Reflect.construct(target, args)
     }
 });
 */
 
 // Delete non-proxified objects so requests don't escape the proxy
 
-// Fetc and XMLHttpRequest
+// WebSocket
+delete window.WebSocket;
+
+// Fetch and XMLHttpRequest
 delete window.fetch;
 delete window.XMLHttpRequest;
 

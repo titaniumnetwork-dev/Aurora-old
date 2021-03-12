@@ -19,6 +19,7 @@ import (
 var err error
 
 // TODO: Write a proper header parser
+// TODO: Doesn't work anymore so fix
 func Header(key string, valArr []string) []string {
 	val := strings.Join(valArr, "; ")
 
@@ -28,7 +29,7 @@ func Header(key string, valArr []string) []string {
 		re1 := regexp.MustCompile(`domain=(.*?);`)
 		val = re1.ReplaceAllString(val, "domain="+config.URL.Hostname()+";")
 		re2 := regexp.MustCompile(`path=(.*?);`)
-		val = re2.ReplaceAllString(val, "path="+config.Prefix+base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()))+";")
+		val = re2.ReplaceAllString(val, "path="+config.HTTPPrefix+base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()))+";")
 	}
 
 	valArr = strings.Split(val, "; ")
@@ -116,6 +117,10 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 
 			if token.Data == "head" {
 				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\""+config.ProxyURL.String()+"\"}")) + "\"></script>"
+			}
+			if token.Data == "html" {
+				// Temporary solution
+				token.Attr = append("id", "domsel")
 			}
 		case html.SelfClosingTagToken:
 			attr := ""

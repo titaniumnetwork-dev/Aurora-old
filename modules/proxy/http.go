@@ -26,10 +26,14 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if r.TLS == nil {
-		config.HTTPScheme = "http"
-	} else {
+	config.SSLOverProxy, config.SSLOverProxyExists = os.LookupEnv("SSLOVERPROXY")
+	if config.SSLOverProxyExists == false {
+		config.SSLOverProxy == false
+	}
+	if r.TLS != nil || config.SSLOverProxy == true {
 		config.HTTPScheme = "https"
+	} else {
+		config.HTTPScheme = "http"
 	}
 
 	config.URL, err = url.Parse(config.Scheme + "://" + r.Host + r.RequestURI)
