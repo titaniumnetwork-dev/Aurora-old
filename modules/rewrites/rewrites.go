@@ -19,6 +19,7 @@ import (
 var err error
 
 // TODO: Write a proper header parser
+// TODO: Doesn't work anymore so fix
 func Header(key string, valArr []string) []string {
 	val := strings.Join(valArr, "; ")
 
@@ -26,9 +27,9 @@ func Header(key string, valArr []string) []string {
 	switch key {
 	case "Set-Cookie":
 		re1 := regexp.MustCompile(`domain=(.*?);`)
-		val = re1.ReplaceAllString(val, "domain="+ config.URL.Hostname() + ";")
+		val = re1.ReplaceAllString(val, "domain="+config.URL.Hostname()+";")
 		re2 := regexp.MustCompile(`path=(.*?);`)
-		val = re2.ReplaceAllString(val, "path=" + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String())) + ";")
+		val = re2.ReplaceAllString(val, "path="+config.HTTPPrefix+base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()))+";")
 	}
 
 	valArr = strings.Split(val, "; ")
@@ -47,15 +48,10 @@ func internalHTML(key string, val string) (string, error) {
 				err = errors.New("No value in attribute" + key + "set")
 				return "", nil
 			} else {
-				// This is really a mess
-				if url.RawQuery == "" {
-					val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.Scheme + "://" + config.ProxyURL.Host + config.ProxyURL.Path + val + config.ProxyURL.Fragment))
-				} else {
-					val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.Scheme + "://" + config.ProxyURL.Host + config.ProxyURL.Path + val + "?" + config.ProxyURL.RawQuery + config.ProxyURL.Fragment))
-				}
-			} 
+				val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()+url.Scheme+"://"+url.Host+url.Path)) + url.Query() + url.Fragment
+			}
 		} else {
-			val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(val))
+			val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(url.Scheme+"://"+url.Host+url.Path)) + url.Query() + url.Fragment
 		}
 	}
 	if key == "style" {
@@ -72,9 +68,9 @@ func internalHTML(key string, val string) (string, error) {
 func internalCSS(val string) string {
 	url, err := url.Parse(val)
 	if err != nil || url.Scheme == "" || url.Host == "" {
-		val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.URL.String() + val))
+		val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()+url.Scheme+"://"+url.Host+url.Path)) + url.Query() + url.Fragment
 	} else {
-		val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(val))
+		val = config.URL.Scheme + "://" + config.URL.Host + config.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(url.Scheme+"://"+url.Host+url.Path)) + url.Query() + url.Fragment
 	}
 
 	return val
@@ -97,7 +93,7 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 
 		switch tokenType {
 		case html.TextToken:
-			if string(tokenizer.Text()) == "style" {	
+			if string(tokenizer.Text()) == "style" {
 				valInterface, err := CSS(token.Data)
 				if err != nil {
 					return nil, err
@@ -120,7 +116,11 @@ func HTML(body io.ReadCloser) (io.ReadCloser, error) {
 			out += "<" + token.Data + attr + ">"
 
 			if token.Data == "head" {
-				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\"" + config.ProxyURL.String() + "\"}")) + "\"></script>"
+				out += "<script src=\"../js/inject.js\" data-config=\"" + base64.URLEncoding.EncodeToString([]byte("{\"url\":\""+config.ProxyURL.String()+"\"}")) + "\"></script>"
+			}
+			if token.Data == "html" {
+				// Temporary solution
+				token.Attr = append("id", "domsel")
 			}
 		case html.SelfClosingTagToken:
 			attr := ""

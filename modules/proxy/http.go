@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/titaniumnetwork-dev/Aurora/modules/config"
 	"github.com/titaniumnetwork-dev/Aurora/modules/rewrites"
@@ -11,16 +12,13 @@ import (
 	"net/url"
 	"strings"
 	"time"
-	"errors"
 )
 
-var err error
-
-// Server used for proxy
+// Server used for http proxy
 func HTTPServer(w http.ResponseWriter, r *http.Request) {
-	// This will go great with json config
-	blockedUserAgents := [0]string{}
-	for _, userAgent := range blockedUserAgents {
+	var err error
+
+	for _, userAgent := range config.BlockedUserAgents {
 		if userAgent == r.UserAgent() {
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprintf(w, "401, not authorized")
@@ -28,10 +26,14 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if r.TLS == nil {
-		config.Scheme = "http"
+	config.SSLOverProxy, config.SSLOverProxyExists = os.LookupEnv("SSLOVERPROXY")
+	if config.SSLOverProxyExists == false {
+		config.SSLOverProxy == false
+	}
+	if r.TLS != nil || config.SSLOverProxy == true {
+		config.HTTPScheme = "https"
 	} else {
-		config.Scheme = "https"
+		config.HTTPScheme = "http"
 	}
 
 	config.URL, err = url.Parse(config.Scheme + "://" + r.Host + r.RequestURI)
@@ -48,18 +50,15 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "500, %s", err)
 		return
 	}
+
 	config.ProxyURL, err = url.Parse(string(proxyURLBytes))
 	if err != nil || config.ProxyURL.Scheme == "" || config.ProxyURL.Host == "" {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "500, %s", errors.New("Unable to parse url"))
-		if err != nil {
-			log.Fatal(err)
-		}
 		return
 	}
 
-	blockedDomains := [0]string{}
-	for _, domain := range blockedDomains {
+	for _, domain := range config.BlockedDomains {
 		if domain == config.ProxyURL.Hostname() {
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprintf(w, "401, this domain has been blocked")
@@ -90,8 +89,7 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	blockedHeaders := [4]string{"Content-Security-Policy", "Content-Security-Policy-Report-Only", "Strict-Transport-Security", "X-Frame-Options"}
-	for _, header := range blockedHeaders {
+	for _, header := range config.BlockedHeaders {
 		delete(resp.Header, header)
 	}
 	for key, val := range resp.Header {
@@ -111,8 +109,8 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if strings.HasPrefix(contentType, "text/css") {
-		respBodyTMP, err := rewrites.CSS(resp.Body)
-		resp.Body = respBodyTMP.(io.ReadCloser)
+		respBodyInterface, err := rewrites.CSS(resp.Body)
+		resp.Body = respBodyInterface.(io.ReadCloser)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "500, %s", err)
