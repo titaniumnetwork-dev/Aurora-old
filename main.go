@@ -1,47 +1,48 @@
 package main
 
 import (
-	"github.com/titaniumnetwork-dev/Aurora/modules/config"
-	"github.com/titaniumnetwork-dev/Aurora/modules/proxy"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
+
+	"github.com/titaniumnetwork-dev/Aurora/modules/config"
+	"github.com/titaniumnetwork-dev/Aurora/modules/proxy"
+	"gopkg.in/yaml.v2"
 )
 
 var err error
 
 func main() {
-	config.HTTPPrefix, config.HTTPPrefixExists = os.LookupEnv("HTTPPREFIX")
-	config.WSPrefix, config.WSPrefixExists = os.LookupEnv("WSPREFIX")
-	// config.WRTCPrefix, config.WRTCPrefixExists = os.LookupEnv("WRTCPREFIX")
-	if config.HTTPPrefixExists == false {
+	data, err := ioutil.ReadFile("config.yaml")
+	if err != nil {
+		log.Fatal("You need to add a config")
+	}
+
+	err = yaml.Unmarshal(data, &config.YAML)
+
+	if config.YAML.HTTPPrefix == "" {
 		log.Fatal("You need to specify an http prefix")
-	} else if config.WSPrefixExists == false {
+	} else if config.YAML.WSPrefix == "" {
 		log.Fatal("You need to specify an ws prefix")
 	} else {
-		http.HandleFunc(config.HTTPPrefix, proxy.HTTPServer)
-		http.HandleFunc(config.WSPrefix, proxy.WSServer)
-		// http.HandleFunc(config.WRTCPrefix, proxy.WRTCServer)
+		http.HandleFunc(config.YAML.HTTPPrefix, proxy.HTTPServer)
+		http.HandleFunc(config.YAML.WSPrefix, proxy.WSServer)
 		http.Handle("/", http.FileServer(http.Dir("./static")))
 	}
 
-	config.Port, config.PortExists = os.LookupEnv("PORT")
-	if config.PortExists {
-		config.SSLCert, config.SSLCertExists = os.LookupEnv("CERT")
-		config.SSLKey, config.SSLKeyExists = os.LookupEnv("KEY")
+	if config.YAML.Port == "" {
+		log.Fatal("You need to specify a port")
+	}
 
-		if config.SSLCertExists && config.SSLKeyExists {
-			err = http.ListenAndServeTLS(config.Port, config.SSLCert, config.SSLKey, nil)
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			err = http.ListenAndServe(config.Port, nil)
-			if err != nil {
-				log.Fatal(err)
-			}
+	if config.YAML.Cert != "" && config.YAML.Key != "" {
+		err = http.ListenAndServeTLS(config.YAML.Port, config.YAML.Cert, config.YAML.Key, nil)
+		if err != nil {
+			log.Fatal(err)
 		}
 	} else {
-		log.Fatal("You need to specify a port")
+		err = http.ListenAndServe(config.YAML.Port, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }

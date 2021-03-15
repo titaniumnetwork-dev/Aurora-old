@@ -2,23 +2,22 @@ package proxy
 
 import (
 	"encoding/base64"
-	"errors"
 	"fmt"
-	"github.com/titaniumnetwork-dev/Aurora/modules/config"
-	"github.com/titaniumnetwork-dev/Aurora/modules/rewrites"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/titaniumnetwork-dev/Aurora/modules/config"
+	"github.com/titaniumnetwork-dev/Aurora/modules/rewrites"
 )
 
 // Server used for http proxy
 func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	var err error
 
-	for _, userAgent := range config.BlockedUserAgents {
+	for _, userAgent := range config.YAML.BlockedUserAgents {
 		if userAgent == r.UserAgent() {
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprintf(w, "401, not authorized")
@@ -26,24 +25,21 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	config.SSLOverProxy, config.SSLOverProxyExists = os.LookupEnv("SSLOVERPROXY")
-	if config.SSLOverProxyExists == false {
-		config.SSLOverProxy == false
-	}
-	if r.TLS != nil || config.SSLOverProxy == true {
-		config.HTTPScheme = "https"
+	// TODO: Figure out how to use r.TLSs
+	if config.YAML.SSLOverProxy {
+		config.Scheme = "https"
 	} else {
-		config.HTTPScheme = "http"
+		config.Scheme = "http"
 	}
 
-	config.URL, err = url.Parse(config.Scheme + "://" + r.Host + r.RequestURI)
+	config.URL, err = url.Parse(fmt.Sprintf("%s://%s%s", config.Scheme, r.Host, r.RequestURI))
 	if err != nil || config.URL.Scheme == "" || config.URL.Host == "" {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "500, %s", errors.New("Unable to parse url"))
+		fmt.Fprintf(w, "500, %s", fmt.Sprintf("Unable to parse url, %s", config.ProxyURL.String()))
 		return
 	}
 
-	proxyURLB64 := config.URL.Path[len(config.HTTPPrefix):]
+	proxyURLB64 := config.URL.Path[len(config.YAML.HTTPPrefix):]
 	proxyURLBytes, err := base64.URLEncoding.DecodeString(proxyURLB64)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -54,19 +50,23 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	config.ProxyURL, err = url.Parse(string(proxyURLBytes))
 	if err != nil || config.ProxyURL.Scheme == "" || config.ProxyURL.Host == "" {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "500, %s", errors.New("Unable to parse url"))
+		fmt.Fprintf(w, "500, %s", fmt.Sprintf("Unable to parse url, %s", config.ProxyURL.String()))
 		return
 	}
 
-	for _, domain := range config.BlockedDomains {
+	for _, domain := range config.YAML.BlockedDomains {
 		if domain == config.ProxyURL.Hostname() {
 			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprintf(w, "401, this domain has been blocked")
+			fmt.Fprintf(w, fmt.Sprintf("401, %s has been blocked", config.ProxyURL.Hostname()))
 			return
 		}
 	}
 
-	// TODO: Add the option to cap file transfer size with environment variable
+	for key, val := range r.Header {
+		val = rewrites.Header(key, val)
+		r.Header.Set(key, strings.Join(val, ", "))
+	}
+
 	tr := &http.Transport{
 		IdleConnTimeout: 10 * time.Second,
 	}
@@ -77,21 +77,23 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "404, %s", err)
-		log.Println(err)
 		return
 	}
+
+	req.Header = r.Header
+
 	resp, err := client.Do(req)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "404, %s", err)
-		log.Println(err)
 		return
 	}
 	defer resp.Body.Close()
 
-	for _, header := range config.BlockedHeaders {
-		delete(resp.Header, header)
+	if config.YAML.Cap != 0 {
+		http.MaxBytesReader(w, resp.Body, config.YAML.Cap)
 	}
+
 	for key, val := range resp.Header {
 		val = rewrites.Header(key, val)
 		w.Header().Set(key, strings.Join(val, ", "))
@@ -100,23 +102,11 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 
 	contentType := resp.Header.Get("Content-Type")
 	if strings.HasPrefix(contentType, "text/html") {
-		resp.Body, err = rewrites.HTML(resp.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "500, %s", err)
-			log.Println(err)
-			return
-		}
+		resp.Body = rewrites.HTML(resp.Body)
 	}
 	if strings.HasPrefix(contentType, "text/css") {
-		respBodyInterface, err := rewrites.CSS(resp.Body)
+		respBodyInterface := rewrites.CSS(resp.Body)
 		resp.Body = respBodyInterface.(io.ReadCloser)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "500, %s", err)
-			log.Println(err)
-			return
-		}
 	}
 	// Currently low priority
 	/*
