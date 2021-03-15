@@ -13,12 +13,12 @@ import (
 var err error
 
 func main() {
-	data, err := ioutil.ReadFile("config.yaml")
+	file, err := ioutil.ReadFile("config.yaml")
 	if err != nil {
 		log.Fatal("You need to add a config")
 	}
 
-	err = yaml.Unmarshal(data, &config.YAML)
+	err = yaml.Unmarshal(file, &config.YAML)
 
 	if config.YAML.HTTPPrefix == "" {
 		log.Fatal("You need to specify an http prefix")

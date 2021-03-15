@@ -3,25 +3,25 @@ package config
 import "net/url"
 
 type yaml struct {
-	BlockedDomains    []string
-	BlockedUserAgents []string
+	BlockedDomains    []string `yaml:"BlockedDomains"`
+	BlockedUserAgents []string `yaml:"BlockedUserAgents"`
 
 	// TODO: Support subdomains too
-	HTTPPrefix string
-	WSPrefix   string
+	HTTPPrefix string `yaml:"HTTPPrefix"`
+	WSPrefix   string `yaml:"WSPrefix"`
 
 	/*
 	   var WRTCPrefixExists bool
 	   var WRTCPrefix String
 	*/
 
-	Port string
+	Port string `yaml:"Port"`
 
-	SSLOverProxy bool
-	Cert         string
-	Key          string
+	SSLOverProxy bool   `yaml:"SSLOverProxy"`
+	Cert         string `yaml:"Cert"`
+	Key          string `yaml:"Key"`
 
-	Cap int64
+	Cap int64 `yaml:"Cap"`
 }
 
 var (

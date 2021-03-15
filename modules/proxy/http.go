@@ -62,11 +62,6 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	for key, val := range r.Header {
-		val = rewrites.Header(key, val)
-		r.Header.Set(key, strings.Join(val, ", "))
-	}
-
 	tr := &http.Transport{
 		IdleConnTimeout: 10 * time.Second,
 	}
@@ -80,7 +75,10 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Header = r.Header
+	for key, val := range req.Header {
+		val = rewrites.Header(key, val)
+		r.Header.Set(key, strings.Join(val, ", "))
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
