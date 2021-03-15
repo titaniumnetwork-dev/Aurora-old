@@ -1,11 +1,11 @@
 package proxy
 
 import (
-	"context"
+	//"context"
 	"fmt"
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
-	"github.com/titaniumnetwork-dev/Aurora/modules/config"
+	//"github.com/gobwas/ws"
+	//"github.com/gobwas/ws/wsutil"
+	//"github.com/titaniumnetwork-dev/Aurora/modules/config"
 	"net/http"
 )
 
@@ -14,6 +14,10 @@ import (
 // Do not use pre-forwarding blocking or get information at that time
 // TODO: Send websocket error however that works
 func WSServer(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprintf(w, "Websocket support is not finished yet")
+	return
+	/*
 	conn, _, _, err := ws.UpgradeHTTP(r, w)
 	if err != nil {
 		log.Println(err)
@@ -30,17 +34,18 @@ func WSServer(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// TODO: STtore something in proxy proxyurl variable
-			clientConn, _, _, err := ws.DefaultDialer.Dial(ctx, config.ProxyURL.String())
+			proxyConn, _, _, err := ws.DefaultDialer.Dial(ctx, config.ProxyURL.String())
 			if err != nil {
 				log.Println(err)
 				return
 			}
 
-			clientMsg, clientOp, err = wsutil.ReadServerData(clientConn)
+			proxyMsg, proxyOp, err = wsutil.ReadServerData(clientConn)
 			if err != nil {
 				log.Println(err)
 				return
 			}
 		}
 	}()
+	*/
 }
