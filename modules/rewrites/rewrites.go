@@ -22,25 +22,30 @@ var err error
 
 // TODO: Continue adding more header rewrites until it's done
 func Header(key string, vals []string) []string {
-	for i, val := range vals {
-		switch key {
-		// Request headers
-		case "Host":
-			split := strings.Split(val, ":")
-			split[0] = config.ProxyURL.Host
-			val = config.ProxyURL.Host
-		// Response headers
-		case "Set-Cookie":
-			split := strings.Split(val, "=")
-			switch split[0] {
-			case "domain":
-				split[1] = config.URL.Hostname()
-			case "path":
-				split[1] = config.YAML.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()))
+	for i, val1 := range vals {
+		split1 := strings.Split(val1, "; ")
+		for j, val2 := range split1 {
+			switch key {
+			// Request headers
+			case "Host":
+				split2 := strings.Split(val2, ":")
+				split2[0] = config.ProxyURL.Host
+				val2 = strings.Join(split2, ":")
+			// Response headers
+			case "Set-Cookie":
+				split2 := strings.Split(val2, "=")
+				switch split2[0] {
+				case "domain":
+					split2[1] = config.URL.Hostname()
+				case "path":
+					split2[1] = config.YAML.HTTPPrefix + base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()))
+				}
+				val2 = strings.Join(split2, "=")
 			}
-			val = strings.Join(split, "=")
+			split1[j] = val2
 		}
-		vals[i] = val
+		val1 = strings.Join(split1, "; ")
+		vals[i] = val1
 	}
 
 	return vals
@@ -50,14 +55,23 @@ func internalHTML(key string, val string) string {
 	if key == "href" || key == "src" || key == "poster" || key == "action" || key == "srcset" {
 		url, err := url.Parse(val)
 		if err != nil || url.Scheme == "" || url.Host == "" {
-			if strings.HasPrefix(val, "/") {
-				val = val[1:]
-			}
-			if val != "" {
-				val = fmt.Sprintf("%s://%s%s%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s%s://%s%s", config.ProxyURL.String(), url.Scheme, url.Host, url.Path))), url.Query().Encode(), url.Fragment)
+			split := strings.Split(val, "../")
+			if len(split) >= 2 {
+				val = split[len(split)-1]
+
+				pSplit := strings.Split(config.ProxyURL.Path, "/")
+				for i := 1; i <= len(pSplit); i++ {
+					pSplit[len(pSplit)-i] = ""
+				}
+
+				val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s://%s%s/%s", config.ProxyURL.Scheme, config.ProxyURL.Host, config.ProxyURL.Path[:len(strings.Join(pSplit, ""))], val))))
+			} else if strings.HasPrefix(val, "/") {
+				val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s://%s%s", config.ProxyURL.Scheme, config.ProxyURL.Host, val))))
+			} else {
+				val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()+val)))
 			}
 		} else {
-			val = fmt.Sprintf("%s://%s%s%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s://%s%s", url.Scheme, url.Host, url.Path))), url.Query().Encode(), url.Fragment)
+			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(val)))
 		}
 	}
 	if key == "style" {
@@ -70,10 +84,24 @@ func internalHTML(key string, val string) string {
 
 func internalCSS(val string) string {
 	url, err := url.Parse(val)
-	if err == nil || url.Scheme != "" || url.Host != "" {
-		val = fmt.Sprintf("%s://%s%s%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s://%s%s", url.Scheme, url.Host, url.Path))), url.Query().Encode(), url.Fragment)
+	if err != nil || url.Scheme == "" || url.Host == "" {
+		split := strings.Split(val, "../")
+		if len(split) >= 2 {
+			val = split[len(split)-1]
+
+			pSplit := strings.Split(config.ProxyURL.Path, "/")
+			for i := 1; i <= len(pSplit); i++ {
+				pSplit[len(pSplit)-i] = ""
+			}
+
+			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s://%s%s/%s", config.ProxyURL.Scheme, config.ProxyURL.Host, config.ProxyURL.Path[:len(strings.Join(pSplit, ""))], val))))
+		} else if strings.HasPrefix(val, "/") {
+			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s://%s%s", config.ProxyURL.Scheme, config.ProxyURL.Host, val))))
+		} else {
+			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()+val)))
+		}
 	} else {
-		val = fmt.Sprintf("%s://%s%s%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s%s://%s%s", config.ProxyURL.String(), url.Scheme, url.Host, url.Path))), url.Query().Encode(), url.Fragment)
+		val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(val)))
 	}
 
 	return val
@@ -110,7 +138,7 @@ func HTML(body io.ReadCloser) io.ReadCloser {
 			out += fmt.Sprintf("<%s%s>", token.Data, attr)
 
 			if token.Data == "head" {
-				out += fmt.Sprintf("<script src=\"../js/inject.js\" data-config=\"%s\"></script>", base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("{\"url\":\"%s\"\"proxyurl\":\"%s\"\"httpprefix\":\"%s\"\"wsprefix\":\"%s\"}", config.URL.String(), config.ProxyURL.String(), config.YAML.HTTPPrefix, config.YAML.WSPrefix))))
+				out += fmt.Sprintf("<script src=\"../js/inject.js\" data-config=\"%s\"></script>", base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("{\"url\":\"%s\",\"proxyurl\":\"%s\",\"httpprefix\":\"%s\",\"wsprefix\":\"%s\"}", config.URL.String(), config.ProxyURL.String(), config.YAML.HTTPPrefix, config.YAML.WSPrefix))))
 			}
 			if token.Data == "html" {
 				// Temporary solution

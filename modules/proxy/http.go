@@ -25,11 +25,10 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// TODO: Figure out how to use r.TLSs
-	if config.YAML.SSLOverProxy {
-		config.Scheme = "https"
-	} else {
+	if r.TLS == nil {
 		config.Scheme = "http"
+	} else if r.TLS != nil {
+		config.Scheme = "https"
 	}
 
 	config.URL, err = url.Parse(fmt.Sprintf("%s://%s%s", config.Scheme, r.Host, r.RequestURI))
@@ -50,7 +49,7 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	config.ProxyURL, err = url.Parse(string(proxyURLBytes))
 	if err != nil || config.ProxyURL.Scheme == "" || config.ProxyURL.Host == "" {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "500, %s", fmt.Sprintf("Unable to parse url, %s", config.ProxyURL.String()))
+		fmt.Fprintf(w, fmt.Sprintf("500, %s", fmt.Sprintf("Unable to parse url, %s", string(proxyURLBytes))))
 		return
 	}
 
@@ -75,7 +74,10 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for key, val := range req.Header {
+	for _, header := range config.YAML.BlockedHeaders {
+		delete(r.Header, header)
+	}
+	for key, val := range r.Header {
 		val = rewrites.Header(key, val)
 		r.Header.Set(key, strings.Join(val, ", "))
 	}
@@ -92,6 +94,9 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		http.MaxBytesReader(w, resp.Body, config.YAML.Cap)
 	}
 
+	for _, header := range config.YAML.BlockedHeaders {
+		delete(resp.Header, header)
+	}
 	for key, val := range resp.Header {
 		val = rewrites.Header(key, val)
 		w.Header().Set(key, strings.Join(val, ", "))
