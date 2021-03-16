@@ -27,6 +27,7 @@ func main() {
 	} else {
 		http.HandleFunc(config.YAML.HTTPPrefix, proxy.HTTPServer)
 		http.HandleFunc(config.YAML.WSPrefix, proxy.WSServer)
+		// TODO: Serve main.html and use templates
 		http.Handle("/", http.FileServer(http.Dir("./static")))
 	}
 

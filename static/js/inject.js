@@ -9,7 +9,7 @@ const rewrites = {
 	url: url => url = new URL(url) ? config.url + btoa(url) : config.url + btoa(atob(window.location.href) + url),
 	html: html => {
 		// TODO: Avoid selecting id
-		var dom = DOMParser().parseFromString(html), sel = dom.querySelector('domsel');
+		var dom = DOMParser().parseFromString(html), sel = dom.querySelector('*');
 
 		sel.InnerHtml = html;
 
@@ -41,7 +41,7 @@ document = new Proxy(document, {
 	}
 });
 
-let window = new Proxy(document, {
+window = new Proxy(document, {
 	get: (target, prop) => {
 		switch (prop) {
 		case 'document':
@@ -54,7 +54,7 @@ let window = new Proxy(document, {
 	}
 });
 
-document.prototype.write = new Proxy(document.prototype.write, {
+document.write = new Proxy(document.write, {
 	apply: (target, thisArg, args) => {
         html = rewrites.html(args[0])
 		// TODO: Rewrite and send back data

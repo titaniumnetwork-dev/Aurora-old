@@ -4,6 +4,7 @@ import "net/url"
 
 type yaml struct {
 	BlockedDomains    []string `yaml:"BlockedDomains"`
+	BlockedHeaders    []string `yaml:"BlockedHeaders"`
 	BlockedUserAgents []string `yaml:"BlockedUserAgents"`
 
 	// TODO: Support subdomains too
@@ -17,9 +18,8 @@ type yaml struct {
 
 	Port string `yaml:"Port"`
 
-	SSLOverProxy bool   `yaml:"SSLOverProxy"`
-	Cert         string `yaml:"Cert"`
-	Key          string `yaml:"Key"`
+	Cert string `yaml:"Cert"`
+	Key  string `yaml:"Key"`
 
 	Cap int64 `yaml:"Cap"`
 }
