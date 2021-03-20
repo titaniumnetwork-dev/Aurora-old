@@ -51,65 +51,96 @@ func Header(key string, vals []string) []string {
 	return vals
 }
 
-func internalHTML(key string, val string) string {
-	if key == "href" || key == "src" || key == "poster" || key == "action" || key == "srcset" {
-		url, err := url.Parse(val)
-		if err != nil || url.Scheme == "" || url.Host == "" {
-			split := strings.Split(val, "../")
-			if len(split) >= 2 {
-				val = split[len(split)-1]
-
-				pSplit := strings.Split(config.ProxyURL.Path, "/")
-				for i := 1; i <= len(pSplit); i++ {
-					pSplit[len(pSplit)-i] = ""
-				}
-
-				val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s://%s%s/%s", config.ProxyURL.Scheme, config.ProxyURL.Host, config.ProxyURL.Path[:len(strings.Join(pSplit, ""))], val))))
-			} else if strings.HasPrefix(val, "/") {
-				val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s://%s%s", config.ProxyURL.Scheme, config.ProxyURL.Host, val))))
-			} else {
-				val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()+val)))
-			}
-		} else {
-			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(val)))
-		}
-	}
-	if key == "style" {
-		valInterface := CSS(val)
-		val = valInterface.(string)
-	}
-	attr := fmt.Sprintf(" %s=\"%s\"", key, val)
-	return attr
-}
-
-func internalCSS(val string) string {
+// Here contains some debug logging which would be removed after bugs are fixed
+func URL(val string) string {
 	url, err := url.Parse(val)
 	if err != nil || url.Scheme == "" || url.Host == "" {
-		split := strings.Split(val, "../")
-		if len(split) >= 2 {
-			val = split[len(split)-1]
+		pURL := config.ProxyURL.String()
 
-			pSplit := strings.Split(config.ProxyURL.Path, "/")
-			for i := 1; i <= len(pSplit); i++ {
-				pSplit[len(pSplit)-i] = ""
+		split1_0 := strings.Split(val, "../")
+		split1_1 := strings.Split(config.ProxyURL.String(), "/")
+		split1_2 := strings.Split(split1_1[len(split1_1)-1], ".")
+
+		split2 := strings.Split(val, ":")
+
+		if len(split1_2) >= 2 {
+			split1_1[len(split1_1)-1] = ""
+			if len(split1_0) >= 2 {
+				split1_1[len(split1_1)-2] = ""
 			}
+			pURL = strings.Join(split1_1, "/")
+		}
 
-			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s://%s%s/%s", config.ProxyURL.Scheme, config.ProxyURL.Host, config.ProxyURL.Path[:len(strings.Join(pSplit, ""))], val))))
-		} else if strings.HasPrefix(val, "/") {
+		//log.Println("URL Invalid")
+		switch true {
+		case len(split2) == 2:
+			//log.Println("Protocol url: " + val)
+		case len(split1_0) >= 2:
+			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s%s", pURL, val))))
+			//log.Println("../ url: " + val)
+		case strings.HasPrefix(val, "//"):
+			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(pURL+val)))
+			//log.Println("// url: " + val)
+		case strings.HasPrefix(val, "/"):
 			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s://%s%s", config.ProxyURL.Scheme, config.ProxyURL.Host, val))))
-		} else {
-			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(config.ProxyURL.String()+val)))
+			//log.Println("/ url: " + val)
+		default:
+			val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(pURL+val)))
+			//log.Println("url: " + val)
 		}
 	} else {
+		//log.Println("URL Valid")
 		val = fmt.Sprintf("%s://%s%s%s", config.Scheme, config.URL.Host, config.YAML.HTTPPrefix, base64.URLEncoding.EncodeToString([]byte(val)))
+		//log.Println("url: " + val)
 	}
 
 	return val
 }
 
+// TODO: Send multiple key and values in at the same time because for example how would it know about this?
+// <meta http-equiv="refresh" content="3;url=https://www.mozilla.org">
+// See https://www.w3schools.com/Tags/att_object_usemap.asp
+// Add usemap
+func internalHTML(key string, val string, tag string) string {
+	switch true {
+	// See https://stackoverflow.com/questions/28652648/how-to-use-external-svg-in-html and http://bl.ocks.org/clhenrick/0b73208409a14144e1f5
+	case key == "href" || key == "src" || key == "poster" || key == "action" || key == "formaction" || key == "data":
+		val = URL(val)
+	case key == "srcset":
+		// As seen from google logo when proxified the file extension is split too!
+		split := strings.Split(val, " ")
+		// TODO: Switch to using range
+		for i := 0; i <= len(split)-1; i++ {
+			if i^1 == i+1 {
+				split[i] = URL(split[i])
+			}
+		}
+		val = strings.Join(split, " ")
+	case strings.HasPrefix(key, "on"):
+		val = fmt.Sprintf("{let document=audocument;%s}", val)
+	case key == "srcdoc":
+		// TODO: Rewrite html again... why does this have to exist :(
+		// I will have to make html return and take in an interface
+	case key == "style":
+		valInterface := CSS(val)
+		val = valInterface.(string)
+	case tag == "meta":
+		// See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta/name and https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta
+		// http-equiv
+		// name
+	}
+
+	attr := fmt.Sprintf(" %s=\"%s\"", key, val)
+	return attr
+}
+
+// There is a bug that can be seen here with the html rewrites http://localhost/go/aHR0cDovL21hZGVieWV2YW4uY29tL29ic2N1cmUtY3BwLWZlYXR1cmVzLw==
 func HTML(body io.ReadCloser) io.ReadCloser {
 	tokenizer := html.NewTokenizer(body)
 	out := ""
+
+	isScript := false
+	isStyle := false
 
 	for {
 		tokenType := tokenizer.Next()
@@ -122,37 +153,56 @@ func HTML(body io.ReadCloser) io.ReadCloser {
 
 		switch tokenType {
 		case html.TextToken:
-			if string(tokenizer.Text()) == "style" {
-				valInterface := CSS(token.Data)
-				val := valInterface.(string)
-				token.Data = val
+			switch true {
+			case isScript:
+				token.Data = fmt.Sprintf("{let document=audocument;%s}</script>", token.Data)
+				out += token.Data
+				isScript = false
+			case isStyle:
+				dataInterface := CSS(token.Data)
+				token.Data = dataInterface.(string)
+				out += token.Data
+				isStyle = false
+			default:
+				out += token.Data
 			}
-			out += token.Data
 		case html.StartTagToken:
 			attr := ""
 			for _, elm := range token.Attr {
-				attrSel := internalHTML(elm.Key, elm.Val)
-				attr += attrSel
+				// See https://www.w3.org/TR/2016/REC-SRI-20160623/
+				if elm.Key != "integrity" {
+					// TODO: Delete directly instad
+					attrSel := internalHTML(elm.Key, elm.Val, token.Data)
+					attr += attrSel
+				}
 			}
 
 			out += fmt.Sprintf("<%s%s>", token.Data, attr)
 
-			if token.Data == "head" {
-				out += fmt.Sprintf("<script src=\"../js/inject.js\" data-config=\"%s\"></script>", base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("{\"url\":\"%s\",\"proxyurl\":\"%s\",\"httpprefix\":\"%s\",\"wsprefix\":\"%s\"}", config.URL.String(), config.ProxyURL.String(), config.YAML.HTTPPrefix, config.YAML.WSPrefix))))
-			}
-			if token.Data == "html" {
-				// Temporary solution
-				// TODO: Doesn't work; fix
-				// token.Attr = append("id", "domsel")
+			switch token.Data {
+			case "script":
+				isScript = true
+			case "style":
+				isStyle = true
+			case "head":
+				out += "<script src=\"/inject\"></script>"
 			}
 		case html.SelfClosingTagToken:
 			attr := ""
 			for _, elm := range token.Attr {
-				attrSel := internalHTML(elm.Key, elm.Val)
-				attr += attrSel
+				// TODO: Delete directly instad
+				if elm.Key != "integrity" {
+					attrSel := internalHTML(elm.Key, elm.Val, token.Data)
+					attr += attrSel
+				}
 			}
 
 			out += fmt.Sprintf("<%s%s/>", token.Data, attr)
+		case html.EndTagToken:
+			if token.String() == "</script>" {
+				break
+			}
+			out += token.String()
 		default:
 			out += token.String()
 		}
@@ -189,7 +239,11 @@ func CSS(bodyInterface interface{}) interface{} {
 		case css.URLToken:
 			val := strings.Replace(tokenStr, "url(", "", 4)
 			val = strings.Replace(val, ")", "", 1)
-			val = internalCSS(val)
+			val = strings.Replace(val, "'", "", 1)
+			val = strings.Replace(val, "'", "", 1)
+			val = strings.Replace(val, "\"", "", 1)
+			val = strings.Replace(val, "\"", "", 1)
+			val = URL(val)
 
 			out += fmt.Sprintf("url(%s)", val)
 		default:
@@ -207,10 +261,19 @@ func CSS(bodyInterface interface{}) interface{} {
 	}
 }
 
-// Low Priority
+// TODO: Parse js server side and rewrite es6 imports
+func JS(body io.ReadCloser) io.ReadCloser {
+	bytes, err := ioutil.ReadAll(body)
+	if err != nil {
+		return body
+	}
+	bodyStr := fmt.Sprintf("{let document=audocument;%s}", string(bytes))
+	newBody := ioutil.NopCloser(strings.NewReader(bodyStr))
+	newBody.Close()
+	return newBody
+}
 
-// TODO: Add xml rewrites for external entities
-// Use https://golang.org/pkg/encoding/xml/
+// Low Priority
 
 // TODO: Add svg rewrites
 // Use https://github.com/rustyoz/svg/

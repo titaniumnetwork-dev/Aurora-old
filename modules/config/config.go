@@ -2,7 +2,7 @@ package config
 
 import "net/url"
 
-type yaml struct {
+type y struct {
 	BlockedDomains    []string `yaml:"BlockedDomains"`
 	BlockedHeaders    []string `yaml:"BlockedHeaders"`
 	BlockedUserAgents []string `yaml:"BlockedUserAgents"`
@@ -29,5 +29,5 @@ var (
 	URL      *url.URL
 	ProxyURL *url.URL
 
-	YAML = yaml{}
+	YAML = y{}
 )
