@@ -14,6 +14,7 @@ import (
 )
 
 // Server used for http proxy
+// TODO: Use xor based urs depending on seed given in cookie
 func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	var err error
 
@@ -79,7 +80,7 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 	}
 	for key, val := range r.Header {
 		val = rewrites.Header(key, val)
-		r.Header.Set(key, strings.Join(val, ", "))
+		req.Header.Set(key, strings.Join(val, ", "))
 	}
 
 	resp, err := client.Do(req)
@@ -101,25 +102,25 @@ func HTTPServer(w http.ResponseWriter, r *http.Request) {
 		val = rewrites.Header(key, val)
 		w.Header().Set(key, strings.Join(val, ", "))
 	}
+
 	w.WriteHeader(resp.StatusCode)
 
+	// TODO: Support gzip encoding
 	contentType := resp.Header.Get("Content-Type")
-	if strings.HasPrefix(contentType, "text/html") {
+	switch true {
+	case strings.HasPrefix(contentType, "text/html"):
 		resp.Body = rewrites.HTML(resp.Body)
-	}
-	if strings.HasPrefix(contentType, "text/css") {
+	case strings.HasPrefix(contentType, "text/css"):
 		respBodyInterface := rewrites.CSS(resp.Body)
 		resp.Body = respBodyInterface.(io.ReadCloser)
+	case strings.HasPrefix(contentType, "application/javascript") || strings.HasPrefix(contentType, "text/javascript"):
+		resp.Body = rewrites.JS(resp.Body)
+	case strings.HasPrefix(contentType, "image/svg"):
+		// TODO: Rewrite SVG
+	case strings.HasPrefix(contentType, "text/json"):
+		if r.URL.Path == "/manifest.json" {
+			// TODO Rewrite
+		}
 	}
-	// Currently low priority
-	/*
-		if strings.HasPrefix(contentType, "image/svg") {
-			resp.Body = rewrites.SVG(resp.Body)
-		}
-		if strings.HasPrefix(contentType, "application/xml") strings.HasPrefix(contentType, "text/xml") {
-			resp.Body = rewrites.XML(resp.Body)
-		}
-	*/
-
 	io.Copy(w, resp.Body)
 }
